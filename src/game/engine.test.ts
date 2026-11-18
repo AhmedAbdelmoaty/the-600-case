@@ -1,52 +1,140 @@
-import { describe, it, expect } from "vitest";
-import { reduce, initialState, type Action, type State } from "./engine";
+import { describe, expect, it } from "vitest";
+import {
+  FOLDERS,
+  STAGE_OF,
+  initialState,
+  reduce,
+  type Action,
+  type D1Id,
+  type FinalId,
+  type State,
+  type TestId,
+} from "./engine";
 
-const run = (actions: Action[], s: State = initialState()) => actions.reduce(reduce, s);
-const adv = (n: number): Action[] => Array.from({ length: n }, () => ({ type: "advance" }) as Action);
-const toDesk = (d1: any): Action[] => [{ type: "start", rng: () => 0.3 }, { type: "rulesOk" }, ...adv(6), { type: "chooseD1", id: d1 }, { type: "continue" }];
-const openAll: Action[] = (["selection", "baseline", "design"] as const).flatMap((id) => [{ type: "openFolder", id }, { type: "closeFolder" }] as Action[]);
-const toFinal = (d1: any, ev: any, test: any): Action[] => [
-  ...toDesk(d1), ...openAll, { type: "leaveDesk" }, ...adv(3), { type: "presentEvidence", id: ev }, { type: "continue" },
-  ...adv(1), { type: "chooseTest", id: test }, { type: "continue" }, ...adv(1),
+const run = (actions: Action[], state: State = initialState()) => actions.reduce(reduce, state);
+
+const toD1: Action[] = [
+  { type: "start", rng: () => 0.3 },
+  { type: "advance" },
+  { type: "advance" },
 ];
 
-describe("The 600 Case rules", () => {
-  it("hasty approve or reject costs exactly one star; inspecting costs none", () => {
-    expect(run(toDesk("approve_now")).stars).toBe(2);
-    expect(run(toDesk("reject_now")).stars).toBe(2);
-    expect(run(toDesk("inspect_first")).stars).toBe(3);
+const toDesk = (decision: D1Id): Action[] => [
+  ...toD1,
+  { type: "chooseD1", id: decision },
+  { type: "continue" },
+];
+
+const openAll: Action[] = FOLDERS.flatMap((id) => [
+  { type: "openFolder", id },
+  { type: "closeFolder" },
+]);
+
+const toTest = (decision: D1Id = "inspect_first"): Action[] => [
+  ...toDesk(decision),
+  ...openAll,
+  { type: "leaveDesk" },
+];
+
+const toFinal = (d1: D1Id = "inspect_first", test: TestId = "fair_test"): Action[] => [
+  ...toTest(d1),
+  { type: "chooseTest", id: test },
+  { type: "continue" },
+];
+
+describe("The 600 Case four-milestone engine", () => {
+  it("starts at intro and enters the two-line opening dialogue", () => {
+    const start = reduce(initialState(), { type: "start", rng: () => 0.3 });
+    expect(initialState().phase).toBe("intro");
+    expect(start.phase).toBe("dialogueA");
+    expect(run(toD1).phase).toBe("d1");
   });
-  it("double tap on D1 does not double-charge", () => {
-    const s = run([...toDesk("approve_now").slice(0, -1), { type: "chooseD1", id: "reject_now" }]);
-    expect(s.stars).toBe(2);
+
+  it.each([
+    ["approve_now", 2],
+    ["reject_now", 2],
+    ["inspect_first", 3],
+  ] as const)("charges the correct D1 cost for %s", (id, stars) => {
+    expect(run(toDesk(id)).stars).toBe(stars);
   });
-  it("cannot leave desk before opening all three folders", () => {
-    const s = run([...toDesk("inspect_first"), { type: "openFolder", id: "selection" }, { type: "closeFolder" }, { type: "leaveDesk" }]);
-    expect(s.phase).toBe("desk");
+
+  it("cannot charge a second D1 choice", () => {
+    const state = run([
+      ...toD1,
+      { type: "chooseD1", id: "approve_now" },
+      { type: "chooseD1", id: "reject_now" },
+    ]);
+    expect(state.stars).toBe(2);
+    expect(state.decisions.d1).toBe("approve_now");
   });
-  it("every folder is valid evidence (no star loss)", () => {
-    for (const ev of ["selection", "baseline", "design"]) {
-      expect(run(toFinal("inspect_first", ev, "fair_test")).stars).toBe(3);
-    }
+
+  it("cannot leave the evidence desk before all three folders are opened", () => {
+    const state = run([
+      ...toDesk("inspect_first"),
+      { type: "openFolder", id: "selection" },
+      { type: "closeFolder" },
+      { type: "openFolder", id: "ambition" },
+      { type: "closeFolder" },
+      { type: "leaveDesk" },
+    ]);
+    expect(state.phase).toBe("desk");
   });
-  it("raw comparison and before/after each cost one star", () => {
-    expect(run(toFinal("inspect_first", "design", "compare_raw")).stars).toBe(2);
-    expect(run(toFinal("inspect_first", "design", "before_after_only")).stars).toBe(2);
+
+  it("leaves the completed desk directly for test design", () => {
+    expect(run(toTest()).phase).toBe("test");
   });
-  it("evaluate wins even with two earlier mistakes (1 star)", () => {
-    const s = run([...toFinal("approve_now", "selection", "compare_raw"), { type: "chooseFinal", id: "final_evaluate" }]);
-    expect(s.outcome).toBe("win");
-    expect(s.stars).toBe(1);
+
+  it.each([
+    ["compare_raw", 2],
+    ["before_after_only", 2],
+    ["fair_test", 3],
+  ] as const)("charges the correct test-design cost for %s", (id, stars) => {
+    const state = run([...toTest(), { type: "chooseTest", id }, { type: "continue" }]);
+    expect(state.phase).toBe("final");
+    expect(state.stars).toBe(stars);
   });
-  it("expand or cancel always loses, even with 3 stars", () => {
-    expect(run([...toFinal("inspect_first", "selection", "fair_test"), { type: "chooseFinal", id: "final_expand" }]).outcome).toBe("loss");
-    expect(run([...toFinal("inspect_first", "selection", "fair_test"), { type: "chooseFinal", id: "final_cancel" }]).outcome).toBe("loss");
+
+  it("wins by evaluating with at least one remaining star", () => {
+    const state = run([
+      ...toFinal("approve_now", "compare_raw"),
+      { type: "chooseFinal", id: "final_evaluate" },
+    ]);
+    expect(state.stars).toBe(1);
+    expect(state.phase).toBe("end");
+    expect(state.outcome).toBe("win");
   });
-  it("retrying final keeps stars, restart resets", () => {
-    const lost = run([...toFinal("approve_now", "selection", "fair_test"), { type: "chooseFinal", id: "final_cancel" }]);
-    const retry = reduce(lost, { type: "retryFinal" });
+
+  it.each(["final_expand", "final_cancel"] as FinalId[])(
+    "%s always loses even with three stars",
+    (id) => {
+      const state = run([...toFinal(), { type: "chooseFinal", id }]);
+      expect(state.outcome).toBe("loss");
+    },
+  );
+
+  it("retries only the final milestone without restoring stars", () => {
+    const loss = run([
+      ...toFinal("approve_now", "fair_test"),
+      { type: "chooseFinal", id: "final_cancel" },
+    ]);
+    const retry = reduce(loss, { type: "retryFinal" });
     expect(retry.phase).toBe("final");
     expect(retry.stars).toBe(2);
-    expect(reduce(lost, { type: "restart" }).stars).toBe(3);
+    expect(retry.outcome).toBeNull();
+    expect(retry.decisions.final).toBeUndefined();
+  });
+
+  it("maps every phase onto the four HUD stages", () => {
+    expect(STAGE_OF).toEqual({
+      intro: 1,
+      dialogueA: 1,
+      d1: 1,
+      d1fb: 1,
+      desk: 2,
+      test: 3,
+      testFb: 3,
+      final: 4,
+      end: 4,
+    });
   });
 });

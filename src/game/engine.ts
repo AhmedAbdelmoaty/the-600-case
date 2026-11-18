@@ -1,13 +1,11 @@
 // Pure, deterministic game engine for "The 600 Case". No rendering here.
-export type FolderId = "selection" | "baseline" | "design";
+export type FolderId = "selection" | "ambition" | "design";
 export type D1Id = "approve_now" | "reject_now" | "inspect_first";
 export type TestId = "compare_raw" | "before_after_only" | "fair_test";
 export type FinalId = "final_expand" | "final_cancel" | "final_evaluate";
 
 export type Phase =
-  | "intro" | "rules" | "dialogueA" | "d1" | "d1fb" | "desk"
-  | "dialogueC" | "evidence" | "evidenceFb" | "dialogueD" | "test" | "testFb"
-  | "dialogueE" | "final" | "end";
+  "intro" | "dialogueA" | "d1" | "d1fb" | "desk" | "test" | "testFb" | "final" | "end";
 
 export interface State {
   phase: Phase;
@@ -15,45 +13,57 @@ export interface State {
   stars: number;
   opened: FolderId[];
   openFolder: FolderId | null;
-  decisions: { d1?: D1Id | undefined; evidence?: FolderId | undefined; test?: TestId | undefined; final?: FinalId | undefined };
+  decisions: {
+    d1?: D1Id | undefined;
+    test?: TestId | undefined;
+    final?: FinalId | undefined;
+  };
   outcome: "win" | "loss" | null;
-  order: { d1: D1Id[]; folders: FolderId[]; test: TestId[]; final: FinalId[] };
+  order: {
+    d1: D1Id[];
+    folders: FolderId[];
+    test: TestId[];
+    final: FinalId[];
+  };
 }
 
 export const MAX_STARS = 3;
-export const FOLDERS: FolderId[] = ["selection", "baseline", "design"];
+export const FOLDERS: FolderId[] = ["selection", "ambition", "design"];
 const D1: D1Id[] = ["approve_now", "reject_now", "inspect_first"];
 const TEST: TestId[] = ["compare_raw", "before_after_only", "fair_test"];
 const FINAL: FinalId[] = ["final_expand", "final_cancel", "final_evaluate"];
 
-export const DIALOGUE_LENGTH = { dialogueA: 6, dialogueC: 3, dialogueD: 1, dialogueE: 1 } as const;
+export const DIALOGUE_LENGTH = { dialogueA: 2 } as const;
 
 export function shuffle<T>(arr: T[], rng: () => number): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j]!, a[i]!];
+    [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
   }
-  return a;
+  return shuffled;
 }
 
 export function initialState(): State {
   return {
-    phase: "intro", dialogueIndex: 0, stars: MAX_STARS, opened: [], openFolder: null,
-    decisions: {}, outcome: null,
+    phase: "intro",
+    dialogueIndex: 0,
+    stars: MAX_STARS,
+    opened: [],
+    openFolder: null,
+    decisions: {},
+    outcome: null,
     order: { d1: D1, folders: FOLDERS, test: TEST, final: FINAL },
   };
 }
 
 export type Action =
   | { type: "start"; rng?: () => number }
-  | { type: "rulesOk" }
   | { type: "advance" }
   | { type: "chooseD1"; id: D1Id }
   | { type: "openFolder"; id: FolderId }
   | { type: "closeFolder" }
   | { type: "leaveDesk" }
-  | { type: "presentEvidence"; id: FolderId }
   | { type: "chooseTest"; id: TestId }
   | { type: "chooseFinal"; id: FinalId }
   | { type: "continue" }
@@ -63,66 +73,93 @@ export type Action =
 export const isD1Mistake = (id: D1Id) => id !== "inspect_first";
 export const isTestMistake = (id: TestId) => id !== "fair_test";
 
-const DIALOGUE_NEXT: Partial<Record<Phase, Phase>> = {
-  dialogueA: "d1", dialogueC: "evidence", dialogueD: "test", dialogueE: "final",
-};
-
-export function reduce(s: State, a: Action): State {
-  switch (a.type) {
+export function reduce(state: State, action: Action): State {
+  switch (action.type) {
     case "start": {
-      if (s.phase !== "intro") return s;
-      const rng = a.rng ?? Math.random;
+      if (state.phase !== "intro") return state;
+      const rng = action.rng ?? Math.random;
       return {
-        ...initialState(), phase: "rules",
-        order: { d1: shuffle(D1, rng), folders: FOLDERS, test: shuffle(TEST, rng), final: shuffle(FINAL, rng) },
+        ...initialState(),
+        phase: "dialogueA",
+        order: {
+          d1: shuffle(D1, rng),
+          folders: FOLDERS,
+          test: shuffle(TEST, rng),
+          final: shuffle(FINAL, rng),
+        },
       };
     }
-    case "rulesOk":
-      return s.phase === "rules" ? { ...s, phase: "dialogueA", dialogueIndex: 0 } : s;
-    case "advance": {
-      const next = DIALOGUE_NEXT[s.phase];
-      if (!next) return s;
-      const len = DIALOGUE_LENGTH[s.phase as keyof typeof DIALOGUE_LENGTH];
-      if (s.dialogueIndex + 1 < len) return { ...s, dialogueIndex: s.dialogueIndex + 1 };
-      return { ...s, phase: next, dialogueIndex: 0 };
-    }
+    case "advance":
+      if (state.phase !== "dialogueA") return state;
+      if (state.dialogueIndex + 1 < DIALOGUE_LENGTH.dialogueA) {
+        return { ...state, dialogueIndex: state.dialogueIndex + 1 };
+      }
+      return { ...state, phase: "d1", dialogueIndex: 0 };
     case "chooseD1":
-      if (s.phase !== "d1") return s;
-      return { ...s, phase: "d1fb", decisions: { ...s.decisions, d1: a.id }, stars: s.stars - (isD1Mistake(a.id) ? 1 : 0) };
+      if (state.phase !== "d1") return state;
+      return {
+        ...state,
+        phase: "d1fb",
+        decisions: { ...state.decisions, d1: action.id },
+        stars: state.stars - (isD1Mistake(action.id) ? 1 : 0),
+      };
     case "openFolder":
-      if (s.phase !== "desk" || s.openFolder) return s;
-      return { ...s, openFolder: a.id, opened: s.opened.includes(a.id) ? s.opened : [...s.opened, a.id] };
+      if (state.phase !== "desk" || state.openFolder) return state;
+      return {
+        ...state,
+        openFolder: action.id,
+        opened: state.opened.includes(action.id) ? state.opened : [...state.opened, action.id],
+      };
     case "closeFolder":
-      return s.phase === "desk" ? { ...s, openFolder: null } : s;
+      return state.phase === "desk" ? { ...state, openFolder: null } : state;
     case "leaveDesk":
-      if (s.phase !== "desk" || s.opened.length < FOLDERS.length) return s;
-      return { ...s, phase: "dialogueC", dialogueIndex: 0, openFolder: null };
-    case "presentEvidence":
-      // All three folders are valid counter-evidence: never costs a star.
-      if (s.phase !== "evidence") return s;
-      return { ...s, phase: "evidenceFb", decisions: { ...s.decisions, evidence: a.id } };
+      if (state.phase !== "desk" || state.opened.length < FOLDERS.length) {
+        return state;
+      }
+      return { ...state, phase: "test", openFolder: null };
     case "chooseTest":
-      if (s.phase !== "test") return s;
-      return { ...s, phase: "testFb", decisions: { ...s.decisions, test: a.id }, stars: s.stars - (isTestMistake(a.id) ? 1 : 0) };
+      if (state.phase !== "test") return state;
+      return {
+        ...state,
+        phase: "testFb",
+        decisions: { ...state.decisions, test: action.id },
+        stars: state.stars - (isTestMistake(action.id) ? 1 : 0),
+      };
     case "chooseFinal": {
-      if (s.phase !== "final") return s;
-      const win = a.id === "final_evaluate" && s.stars >= 1;
-      return { ...s, phase: "end", decisions: { ...s.decisions, final: a.id }, outcome: win ? "win" : "loss" };
+      if (state.phase !== "final") return state;
+      const win = action.id === "final_evaluate" && state.stars >= 1;
+      return {
+        ...state,
+        phase: "end",
+        decisions: { ...state.decisions, final: action.id },
+        outcome: win ? "win" : "loss",
+      };
     }
     case "continue":
-      if (s.phase === "d1fb") return { ...s, phase: "desk" };
-      if (s.phase === "evidenceFb") return { ...s, phase: "dialogueD", dialogueIndex: 0 };
-      if (s.phase === "testFb") return { ...s, phase: "dialogueE", dialogueIndex: 0 };
-      return s;
+      if (state.phase === "d1fb") return { ...state, phase: "desk" };
+      if (state.phase === "testFb") return { ...state, phase: "final" };
+      return state;
     case "retryFinal":
-      if (s.phase !== "end" || s.outcome !== "loss") return s;
-      return { ...s, phase: "final", outcome: null, decisions: { ...s.decisions, final: undefined } };
+      if (state.phase !== "end" || state.outcome !== "loss") return state;
+      return {
+        ...state,
+        phase: "final",
+        outcome: null,
+        decisions: { ...state.decisions, final: undefined },
+      };
     case "restart":
       return initialState();
   }
 }
 
 export const STAGE_OF: Record<Phase, number> = {
-  intro: 0, rules: 0, dialogueA: 1, d1: 1, d1fb: 1, desk: 2, dialogueC: 3, evidence: 3, evidenceFb: 3,
-  dialogueD: 4, test: 4, testFb: 4, dialogueE: 5, final: 5, end: 5,
+  intro: 1,
+  dialogueA: 1,
+  d1: 1,
+  d1fb: 1,
+  desk: 2,
+  test: 3,
+  testFb: 3,
+  final: 4,
+  end: 4,
 };
