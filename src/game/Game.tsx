@@ -83,7 +83,7 @@ function Intro({ onStart }: { onStart: () => void }) {
   );
 }
 
-function Scene({ mood, stamp, penFrozen, shake, showHR = true }: { mood: Mood; stamp?: "good" | "bad" | null; penFrozen?: boolean; shake?: boolean; showHR?: boolean }) {
+function Scene({ mood, stamp, penFrozen, shake, showHR = true }: { mood: Mood; stamp?: "good" | "bad" | null | undefined; penFrozen?: boolean | undefined; shake?: boolean | undefined; showHR?: boolean }) {
   return (
     <section className={`scene ${shake ? "shake" : ""}`} aria-hidden>
       <div className="window" />
@@ -105,7 +105,7 @@ function Bubble({ line }: { line: Line }) {
   );
 }
 
-function Choices<T extends string>({ ids, label, onPick, picked }: { ids: T[]; label: (id: T) => string; onPick: (id: T) => void; picked?: T }) {
+function Choices<T extends string>({ ids, label, onPick, picked }: { ids: T[]; label: (id: T) => string; onPick: (id: T) => void; picked?: T | undefined }) {
   return (
     <div className="choices">
       {ids.map((id) => (
@@ -130,7 +130,7 @@ function Body({ s, dispatch }: { s: State; dispatch: (a: Action) => void }) {
       );
     case "dialogueA": case "dialogueC": case "dialogueD": case "dialogueE": {
       const lines = DIALOGUE[s.phase];
-      const line = lines[s.dialogueIndex];
+      const line: Line = lines[s.dialogueIndex]!;
       if (line.mood) lastMood.current = line.mood;
       return (
         <main className="panel">

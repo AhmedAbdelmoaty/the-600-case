@@ -54,7 +54,7 @@ export function FolderArt({ opened }: { opened: boolean }) {
   );
 }
 
-export function Desk({ stamp, penFrozen }: { stamp?: "good" | "bad" | null; penFrozen?: boolean }) {
+export function Desk({ stamp, penFrozen }: { stamp?: "good" | "bad" | null | undefined; penFrozen?: boolean | undefined }) {
   return (
     <div className="desk">
       <div className="desk-paper">
@@ -76,7 +76,7 @@ export function Scatter() {
       <svg viewBox="0 0 220 150" width="100%" role="img" aria-label="رسم نقاط: ساعات التدريب مقابل تقييم الأداء، النقاط بتطلع لفوق">
         <line x1="30" y1="120" x2="210" y2="120" stroke={v("ink")} />
         <line x1="30" y1="10" x2="30" y2="120" stroke={v("ink")} />
-        {PTS.map(([x, y], i) => (
+        {(PTS as [number, number][]).map(([x, y], i) => (
           <circle key={i} cx={30 + x * 3.5} cy={130 - y * 1.3} r="4" fill={v("dot")} className="dot" style={{ animationDelay: `${i * 40}ms` }} />
         ))}
         <text x="120" y="140" textAnchor="middle" fontSize="10" fill={v("ink")}>ساعات التدريب</text>

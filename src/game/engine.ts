@@ -15,7 +15,7 @@ export interface State {
   stars: number;
   opened: FolderId[];
   openFolder: FolderId | null;
-  decisions: { d1?: D1Id; evidence?: FolderId; test?: TestId; final?: FinalId };
+  decisions: { d1?: D1Id | undefined; evidence?: FolderId | undefined; test?: TestId | undefined; final?: FinalId | undefined };
   outcome: "win" | "loss" | null;
   order: { d1: D1Id[]; folders: FolderId[]; test: TestId[]; final: FinalId[] };
 }
@@ -32,7 +32,7 @@ export function shuffle<T>(arr: T[], rng: () => number): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+    [a[i], a[j]] = [a[j]!, a[i]!];
   }
   return a;
 }
