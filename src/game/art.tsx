@@ -79,8 +79,8 @@ export function Scatter() {
         {PTS.map(([x, y], i) => (
           <circle key={i} cx={30 + x * 3.5} cy={130 - y * 1.3} r="4" fill={v("dot")} className="dot" style={{ animationDelay: `${i * 40}ms` }} />
         ))}
-        <text x="120" y="140" textAnchor="middle" fontSize="10" fill={v("ink")}>ساعات التدريب ←</text>
-        <text x="12" y="65" textAnchor="middle" fontSize="10" fill={v("ink")} transform="rotate(-90 12 65)">تقييم الأداء ←</text>
+        <text x="120" y="140" textAnchor="middle" fontSize="10" fill={v("ink")}>ساعات التدريب</text>
+        <text x="12" y="65" textAnchor="middle" fontSize="10" fill={v("ink")} transform="rotate(-90 12 65)">تقييم الأداء</text>
       </svg>
       <figcaption>بيانات توضيحية داخل اللعبة</figcaption>
     </figure>
