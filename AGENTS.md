@@ -29,4 +29,4 @@ use the editor.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
 
-- Game logic lives in pure `src/game/engine.ts` (tested in `engine.test.ts`) with script text in `content.ts`; screens/art only render state, so art swaps never change win/loss rules.
+- Game logic lives in pure `src/game/engine.ts` (tested in `engine.test.ts`) with script text in `content.ts` and chart data in `chart.ts`; screens/art only render state, so art swaps never change win/loss rules.

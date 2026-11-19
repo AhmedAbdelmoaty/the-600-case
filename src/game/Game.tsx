@@ -1,419 +1,259 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { FolderOpen, Pause, Play, RotateCcw, Star, Volume2, VolumeX } from "lucide-react";
-import {
-  FOLDERS,
-  STAGE_OF,
-  initialState,
-  isD1Mistake,
-  isTestMistake,
-  reduce,
-  type Action,
-  type State,
-} from "./engine";
-import {
-  D1_OPTIONS,
-  D1_PROMPT,
-  DEBRIEF,
-  DIALOGUE,
-  FINAL_OPTIONS,
-  FINAL_PROMPT,
-  FOLDER_CONTENT,
-  INTRO_MISSION,
-  LOSS_EXPLANATIONS,
-  SUBTITLE_AR,
-  TAGLINE,
-  TEST_OPTIONS,
-  TEST_PROMPT,
-  TITLE,
-  WIN_RANKS,
-  type Line,
-} from "./content";
-import { Confetti, ExecutiveScene, FolderArt, LDLead, Manager, PaperStorm, Scatter } from "./art";
-import { setMuted, sfx } from "./audio";
+import { ArrowRight, BookOpen, Laptop, Mail, RotateCcw, Send, Volume2, VolumeX, X } from "lucide-react";
+import { CHART_FROM_LINE, STATION_OF, initialState, isWin, rankOf, reduce, type Action, type State } from "./engine";
+import { MEETING, NAMES, NOTEBOOK, RANKS, RECS, SUBTITLE_AR, TAGLINE, TAKEAWAYS, TITLE, VERDICTS, type Line } from "./content";
+import { Confetti, LDLead, Manager, PaperStorm } from "./art";
+import { Chart } from "./Chart";
+import { setMuted, sfx, whoosh } from "./audio";
+import "./case.css";
 
-const AR = (number: number) => number.toLocaleString("ar-EG");
-const STAGE_NAMES = ["", "التقرير المبدئي", "فحص الأدلة", "تصميم الاختبار", "القرار النهائي"];
+const STATIONS = ["قاعة الاجتماع", "مكتبك", "الإيميل", "مكتب المدير"];
 
-function soundFor(action: Action, state: State) {
-  switch (action.type) {
-    case "start":
-    case "advance":
-    case "closeFolder":
-    case "continue":
-      return sfx.tap();
-    case "openFolder":
-    case "leaveDesk":
-      return sfx.paper();
-    case "chooseD1":
-      return isD1Mistake(action.id) ? sfx.wobble() : sfx.chime();
-    case "chooseTest":
-      return isTestMistake(action.id) ? sfx.wobble() : sfx.chime();
-    case "chooseFinal":
-      sfx.stamp();
-      return action.id === "final_evaluate" && state.stars >= 1
-        ? setTimeout(sfx.win, 250)
-        : setTimeout(sfx.lose, 250);
-    default:
-      return sfx.tap();
-  }
+function sound(a: Action, s: State) {
+  if (a.type === "send" || (a.type === "pick" && s.picked === a.id)) return;
+  if (a.type === "openNotebook" || a.type === "toEmail") sfx.paper();
+  else if (a.type === "checkLastYear") sfx.chime();
+  else sfx.tap();
 }
 
 export default function Game() {
-  const [state, rawDispatch] = useReducer(reduce, undefined, initialState);
+  const [state, raw] = useReducer(reduce, undefined, initialState);
   const [muted, setMute] = useState(false);
-  const [paused, setPaused] = useState(false);
-  const lock = useRef(0);
-  const stateRef = useRef(state);
-  stateRef.current = state;
-
-  const dispatch = useCallback((action: Action) => {
-    const now = Date.now();
-    if (now - lock.current < 260) return;
-    lock.current = now;
-    soundFor(action, stateRef.current);
-    rawDispatch(action);
+  const ref = useRef(state);
+  ref.current = state;
+  const dispatch = useCallback((a: Action) => {
+    sound(a, ref.current);
+    raw(a);
   }, []);
-
   useEffect(() => setMuted(muted), [muted]);
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [state.phase]);
+  useEffect(() => window.scrollTo({ top: 0 }), [state.phase]);
 
-  if (state.phase === "intro") {
-    return <Intro onStart={() => dispatch({ type: "start" })} />;
-  }
-
-  const stage = STAGE_OF[state.phase];
+  if (state.phase === "intro") return <Intro go={() => dispatch({ type: "start" })} />;
+  const station = STATION_OF[state.phase];
   return (
-    <div className="game" dir="rtl">
-      <header className="hud">
-        <div className="stars" aria-label={`الثقة والمصداقية: ${state.stars} من ٣`}>
-          {[0, 1, 2].map((index) => (
-            <Star key={index} className={index < state.stars ? "on" : "off"} />
+    <div className="cs" dir="rtl">
+      <header className="cs-hud">
+        <ol className="cs-steps">
+          {STATIONS.map((n, i) => (
+            <li key={n} className={i + 1 === station ? "now" : i + 1 < station ? "done" : ""}>
+              <b>{(i + 1).toLocaleString("ar-EG")}</b>
+              <span>{n}</span>
+            </li>
           ))}
-        </div>
-        <div className="stage-copy">
-          <strong>المرحلة {AR(stage)} / ٤</strong>
-          <span>{STAGE_NAMES[stage]}</span>
-        </div>
-        <div className="hud-btns">
-          <button
-            className="icon-btn"
-            onClick={() => setMute((value) => !value)}
-            aria-label={muted ? "تشغيل الصوت" : "كتم الصوت"}
-          >
-            {muted ? <VolumeX /> : <Volume2 />}
-          </button>
-          <button className="icon-btn" onClick={() => setPaused(true)} aria-label="إيقاف مؤقت">
-            <Pause />
-          </button>
-        </div>
-      </header>
-
-      <Body state={state} dispatch={dispatch} />
-
-      {paused && (
-        <div className="overlay" role="dialog" aria-modal="true">
-          <div className="sheet">
-            <h2>اللعبة متوقفة</h2>
-            <button className="btn primary" onClick={() => setPaused(false)}>
-              <Play /> كمّل
-            </button>
-            <button
-              className="btn"
-              onClick={() => {
-                if (confirm("متأكد؟ هتبدأ القضية من الأول.")) {
-                  setPaused(false);
-                  rawDispatch({ type: "restart" });
-                }
-              }}
-            >
-              <RotateCcw /> ابدأ من الأول
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Intro({ onStart }: { onStart: () => void }) {
-  return (
-    <div className="game intro" dir="rtl">
-      <div className="intro-card">
-        <div className="intro-art" aria-hidden>
-          <LDLead size={90} />
-          <Manager mood="happy" size={110} />
-        </div>
-        <p className="case-file">ملف عاجل على مكتب الإدارة</p>
-        <h1 className="title" dir="ltr">
-          {TITLE}
-        </h1>
-        <h2 className="subtitle">{SUBTITLE_AR}</h2>
-        <p className="tagline">{TAGLINE}</p>
-        <div className="mission-note">
-          <div className="mission-stars" aria-hidden>
-            ★★★
-          </div>
-          <p>{INTRO_MISSION}</p>
-        </div>
-        <button className="btn primary big" onClick={onStart}>
-          ادخل الاجتماع
+        </ol>
+        <button className="cs-icon" onClick={() => setMute((m) => !m)} aria-label={muted ? "تشغيل الصوت" : "كتم الصوت"}>
+          {muted ? <VolumeX /> : <Volume2 />}
         </button>
+      </header>
+      <div key={state.phase} className="cs-screen">
+        {state.phase === "meeting" && <Meeting state={state} dispatch={dispatch} />}
+        {state.phase === "office" && <Office state={state} dispatch={dispatch} />}
+        {state.phase === "email" && <Email state={state} dispatch={dispatch} />}
+        {state.phase === "verdict" && <Verdict state={state} dispatch={dispatch} />}
       </div>
     </div>
   );
 }
 
-function Choices<T extends string>({
-  ids,
-  label,
-  onPick,
-  picked,
-}: {
-  ids: T[];
-  label: (id: T) => string;
-  onPick: (id: T) => void;
-  picked?: T | undefined;
-}) {
+function Intro({ go }: { go: () => void }) {
   return (
-    <div className="choices">
-      {ids.map((id) => (
-        <button
-          key={id}
-          className={`choice ${picked ? (picked === id ? "picked" : "dim") : ""}`}
-          disabled={Boolean(picked)}
-          onClick={() => onPick(id)}
-        >
-          {label(id)}
-        </button>
-      ))}
+    <div className="cs cs-intro" dir="rtl">
+      <div className="cs-intro-card">
+        <div className="cs-intro-cast" aria-hidden>
+          <span className="cs-breathe"><LDLead size={84} /></span>
+          <span className="cs-breathe d2"><Manager mood="confident" size={100} /></span>
+        </div>
+        <h1 dir="ltr">{TITLE}</h1>
+        <h2>{SUBTITLE_AR}</h2>
+        <p>{TAGLINE}</p>
+        <div className="cs-badge">أنت مدير الـ HR</div>
+        <button className="cs-btn primary big" onClick={go}>ادخل الاجتماع</button>
+      </div>
     </div>
   );
 }
 
-function Body({ state, dispatch }: { state: State; dispatch: (action: Action) => void }) {
-  switch (state.phase) {
-    case "dialogueA": {
-      const line = DIALOGUE.dialogueA[state.dialogueIndex]!;
-      return (
-        <main className="panel">
-          <ExecutiveScene mood={line.mood} line={line} />
-          <Scatter />
-          <button className="btn primary big" onClick={() => dispatch({ type: "advance" })}>
-            {state.dialogueIndex === 0 ? "اسمع رد المدير" : "شوف الطلب"}
-          </button>
-        </main>
-      );
-    }
-    case "d1":
-    case "d1fb": {
-      const picked = state.decisions.d1;
-      const option = picked ? D1_OPTIONS[picked] : null;
-      return (
-        <main className="panel">
-          <ExecutiveScene
-            mood={option?.reaction.mood ?? "confident"}
-            line={option?.reaction}
-            shake={Boolean(picked && isD1Mistake(picked))}
-          />
-          {!picked && <p className="prompt card">{D1_PROMPT}</p>}
-          <Choices
-            ids={state.order.d1}
-            label={(id) => D1_OPTIONS[id].label}
-            picked={picked}
-            onPick={(id) => dispatch({ type: "chooseD1", id })}
-          />
-          {picked && option?.note && (
-            <div className="feedback bad">
-              <Star className="lost" />
-              <span>{option.note}</span>
-            </div>
-          )}
-          {picked && !option?.note && (
-            <div className="feedback good">قرار هادي: الأول نفهم البيانات، وبعدها نحكم.</div>
-          )}
-          {picked && (
-            <button className="btn primary big" onClick={() => dispatch({ type: "continue" })}>
-              افتح ملفات الأدلة
-            </button>
-          )}
-        </main>
-      );
-    }
-    case "desk": {
-      if (state.openFolder) {
-        const folder = FOLDER_CONTENT[state.openFolder];
-        return (
-          <main className="panel evidence-view">
-            <article className="doc rise">
-              <p className="doc-tab">{folder.label}</p>
-              <h3>
-                <FolderOpen /> {folder.title}
-              </h3>
-              <p>{folder.body}</p>
-              <p className="doc-note">{folder.note}</p>
-            </article>
-            <button className="btn primary big" onClick={() => dispatch({ type: "closeFolder" })}>
-              رجوع لمكتب الأدلة
-            </button>
-          </main>
-        );
-      }
-
-      const complete = state.opened.length === FOLDERS.length;
-      return (
-        <main className="panel">
-          <div className="desk-heading">
-            <div>
-              <h2>مكتب الأدلة</h2>
-              <p>افتح الملفات التلاتة قبل ما ترجع للمدير.</p>
-            </div>
-            <span>{AR(state.opened.length)} / ٣</span>
-          </div>
-          <div className="folders">
-            {state.order.folders.map((id) => (
-              <button
-                key={id}
-                className={`folder ${state.opened.includes(id) ? "opened" : ""}`}
-                onClick={() => dispatch({ type: "openFolder", id })}
-                aria-label={`افتح ${FOLDER_CONTENT[id].title}`}
-              >
-                <FolderArt opened={state.opened.includes(id)} />
-                <span>{FOLDER_CONTENT[id].label}</span>
-              </button>
-            ))}
-          </div>
-          <Scatter />
-          <button
-            className="btn primary big"
-            disabled={!complete}
-            onClick={() => dispatch({ type: "leaveDesk" })}
-          >
-            رجعت أفهم الصورة كاملة
-          </button>
-          {!complete && <p className="muted center">لسه فيه دليل ما اتراجعش.</p>}
-        </main>
-      );
-    }
-    case "test":
-    case "testFb": {
-      const picked = state.decisions.test;
-      const option = picked ? TEST_OPTIONS[picked] : null;
-      const line: Line =
-        picked && option
-          ? { who: "manager", text: option.feedback, mood: option.mood }
-          : { who: "manager", text: TEST_PROMPT, mood: "thinking" };
-      return (
-        <main className="panel">
-          <ExecutiveScene
-            mood={line.mood ?? "thinking"}
-            line={line}
-            shake={Boolean(picked && isTestMistake(picked))}
-          />
-          <Choices
-            ids={state.order.test}
-            label={(id) => TEST_OPTIONS[id].label}
-            picked={picked}
-            onPick={(id) => dispatch({ type: "chooseTest", id })}
-          />
-          {picked && isTestMistake(picked) && (
-            <div className="feedback bad">
-              <Star className="lost" /> خسرت نجمة مصداقية
-            </div>
-          )}
-          {picked && (
-            <button className="btn primary big" onClick={() => dispatch({ type: "continue" })}>
-              قدّم توصيتك النهائية
-            </button>
-          )}
-        </main>
-      );
-    }
-    case "final":
-      return (
-        <main className="panel">
-          <ExecutiveScene
-            mood="confident"
-            line={{ who: "manager", text: FINAL_PROMPT, mood: "confident" }}
-          />
-          <Choices
-            ids={state.order.final}
-            label={(id) => FINAL_OPTIONS[id].label}
-            onPick={(id) => dispatch({ type: "chooseFinal", id })}
-          />
-        </main>
-      );
-    case "end":
-      return <Ending state={state} dispatch={dispatch} />;
-    default:
-      return null;
-  }
+function Bubble({ line, k }: { line: Line; k: number | string }) {
+  return (
+    <div key={k} className={`cs-bubble ${line.who}`} aria-live="polite">
+      <span className="cs-who">{NAMES[line.who]}</span>
+      <p>{line.text}</p>
+    </div>
+  );
 }
 
-function Ending({ state, dispatch }: { state: State; dispatch: (action: Action) => void }) {
-  const won = state.outcome === "win";
-  const finalDecision = state.decisions.final;
-  const rank = WIN_RANKS[Math.max(1, Math.min(3, state.stars)) as 1 | 2 | 3];
-  const failure =
-    finalDecision === "final_expand" || finalDecision === "final_cancel"
-      ? LOSS_EXPLANATIONS[finalDecision]
-      : "القرار محتاج قياس منضبط قبل ما نغامر بالميزانية.";
-
+function Cast({ line, sherifMood, showTarek = true }: { line?: Line | undefined; sherifMood?: Line["mood"]; showTarek?: boolean }) {
   return (
-    <main className={`panel ending ${won ? "victory" : "defeat shake"}`}>
-      {won ? <Confetti /> : <PaperStorm />}
-      <ExecutiveScene
-        mood={won ? "happy" : "facepalm"}
-        stamp={won ? "good" : "bad"}
-        shake={!won}
-        showLD={!won}
-      />
+    <div className="cs-cast" aria-hidden>
+      {showTarek && (
+        <div className={`cs-actor tarek ${line?.who === "tarek" ? "talking" : ""}`}>
+          <LDLead size={86} />
+        </div>
+      )}
+      <div className={`cs-actor sherif ${line?.who === "sherif" ? "talking" : ""}`}>
+        <Manager mood={sherifMood ?? "confident"} size={100} />
+      </div>
+    </div>
+  );
+}
 
-      {won ? (
-        <>
-          <section className="result win">
-            <div className="big-stars" aria-label={`${state.stars} نجوم`}>
-              {[0, 1, 2].map((index) => (
-                <Star key={index} className={index < state.stars ? "on" : "off"} />
-              ))}
-            </div>
-            <h2>{rank.title}</h2>
-            {rank.note && <p className="rank-note">{rank.note}</p>}
-          </section>
-          <article className="decision-document good-document">
-            <div className="document-stamp">قرار محسوب</div>
-            <strong>توصية إدارة الموارد البشرية</strong>
-            <p>القرار: تعليق التوسع لحين إجراء تجربة A/B عادلة</p>
-          </article>
-          <div className="debrief">
-            {DEBRIEF.map((item) => (
-              <article key={item.q} className="takeaway">
-                <strong>{item.q}</strong>
-                <p>{item.a}</p>
-              </article>
-            ))}
-          </div>
-          <button className="btn primary big replay" onClick={() => dispatch({ type: "restart" })}>
-            العب تاني وحافظ على نجومك
+function Meeting({ state, dispatch }: { state: State; dispatch: (a: Action) => void }) {
+  const line = MEETING[state.line]!;
+  const chartOn = state.line >= CHART_FROM_LINE;
+  const last = state.line === MEETING.length - 1;
+  return (
+    <main className="cs-panel">
+      <section className="cs-room">
+        <div className={`cs-screen-board ${chartOn ? "on" : ""}`}>
+          {chartOn ? <Chart /> : <span>تقرير برنامج التدريب · ٦٠٠ موظف</span>}
+        </div>
+        <Bubble line={line} k={state.line} />
+        <Cast line={line} sherifMood={line.who === "sherif" ? line.mood : "confident"} />
+        <div className="cs-table" />
+      </section>
+      <div className="cs-dots" aria-hidden>
+        {MEETING.map((_, i) => <i key={i} className={i <= state.line ? "on" : ""} />)}
+      </div>
+      <button className="cs-btn primary big" onClick={() => dispatch({ type: "next" })}>
+        {last ? <>ارجع مكتبك <ArrowRight /></> : "كمّل"}
+      </button>
+    </main>
+  );
+}
+
+function Office({ state, dispatch }: { state: State; dispatch: (a: Action) => void }) {
+  const [book, setBook] = useState(false);
+  return (
+    <main className="cs-panel">
+      <section className="cs-desk">
+        <div className="cs-laptop">
+          <div className="cs-laptop-bar"><Laptop /> تقرير_التدريب.xlsx</div>
+          <Chart colored={state.lastYearChecked} />
+          <button
+            className="cs-btn small"
+            disabled={state.lastYearChecked}
+            onClick={() => dispatch({ type: "checkLastYear" })}
+          >
+            اعرض تقييم السنة اللي فاتت
           </button>
-        </>
+        </div>
+        <button
+          className="cs-notebook"
+          onClick={() => {
+            setBook(true);
+            dispatch({ type: "openNotebook" });
+          }}
+        >
+          <BookOpen /> محضر الاجتماع
+        </button>
+      </section>
+      <button className="cs-btn primary big" onClick={() => dispatch({ type: "toEmail" })}>
+        <Mail /> اكتب توصيتك لـ م. شريف
+      </button>
+      {book && (
+        <div className="cs-overlay" role="dialog" aria-modal="true" onClick={() => setBook(false)}>
+          <article className="cs-paper" onClick={(e) => e.stopPropagation()}>
+            <button className="cs-icon close" onClick={() => setBook(false)} aria-label="اقفل المحضر"><X /></button>
+            <h3>محضر الاجتماع</h3>
+            <ul>{NOTEBOOK.map((n) => <li key={n}>{n}</li>)}</ul>
+          </article>
+        </div>
+      )}
+    </main>
+  );
+}
+
+function Email({ state, dispatch }: { state: State; dispatch: (a: Action) => void }) {
+  const [flying, setFlying] = useState(false);
+  return (
+    <main className="cs-panel">
+      <article className={`cs-mail ${flying ? "fly" : ""}`}>
+        <div className="cs-mail-head">
+          <p><b>إلى:</b> م. شريف</p>
+          <p><b>الموضوع:</b> توصية بخصوص ميزانية التدريب</p>
+        </div>
+        <p className="cs-mail-hi">م. شريف، بعد مراجعة التقرير، توصيتي:</p>
+        <div className="cs-recs" role="radiogroup">
+          {state.order.map((id) => (
+            <button
+              key={id}
+              role="radio"
+              aria-checked={state.picked === id}
+              className={`cs-rec ${state.picked === id ? "on" : ""}`}
+              onClick={() => dispatch({ type: "pick", id })}
+            >
+              {RECS[id]}
+            </button>
+          ))}
+        </div>
+      </article>
+      <button
+        className="cs-btn primary big"
+        disabled={!state.picked || flying}
+        onClick={() => {
+          setFlying(true);
+          whoosh();
+          setTimeout(() => dispatch({ type: "send" }), 800);
+        }}
+      >
+        <Send /> ابعت
+      </button>
+      <button className="cs-btn ghost" disabled={flying} onClick={() => dispatch({ type: "backToOffice" })}>
+        ارجع للمكتب
+      </button>
+    </main>
+  );
+}
+
+function Verdict({ state, dispatch }: { state: State; dispatch: (a: Action) => void }) {
+  const sent = state.sent!;
+  const v = VERDICTS[sent];
+  const won = isWin(sent);
+  const rank = rankOf(state);
+  const [i, setI] = useState(0);
+  const [done, setDone] = useState(false);
+  const [why, setWhy] = useState(won);
+  const line = v.lines[Math.min(i, v.lines.length - 1)]!;
+  return (
+    <main className={`cs-panel ${won ? "win" : "loss"}`}>
+      {done && (won ? <Confetti /> : <PaperStorm />)}
+      <section className={`cs-room office ${done && !won ? "shake" : ""}`}>
+        {!done && <Bubble line={line} k={i} />}
+        <Cast line={line} sherifMood={v.lines[0]!.mood} showTarek={won} />
+        <div className="cs-table" />
+        {done && <div className={`cs-stamp ${won ? "good" : "bad"}`}>{v.stamp}</div>}
+      </section>
+      {!done ? (
+        <button
+          className="cs-btn primary big"
+          onClick={() => (i + 1 < v.lines.length ? setI(i + 1) : (setDone(true), sfx.stamp(), won ? sfx.win() : sfx.lose()))}
+        >
+          كمّل
+        </button>
       ) : (
         <>
-          <article className="decision-document bad-document">
-            <div className="document-stamp">اتسرّعنا!</div>
-            <strong>طلب زيادة ميزانية التدريب</strong>
-            <p>القرار اتاخد قبل ما الدليل يكتمل.</p>
-          </article>
-          <section className="failure-card">
-            <h2>القرار وقعنا في الفخ</h2>
-            <p>{failure}</p>
+          <section className={`cs-result ${won ? "good" : "bad"}`}>
+            <small>النتيجة</small>
+            <h2>{won && rank ? RANKS[rank] : v.stamp}</h2>
           </section>
-          <button className="btn primary big" onClick={() => dispatch({ type: "retryFinal" })}>
-            جرّب القرار النهائي تاني
-          </button>
-          <button className="btn big" onClick={() => dispatch({ type: "restart" })}>
-            ابدأ القضية من الأول
+          {!why && (
+            <button className="cs-btn ghost" onClick={() => setWhy(true)}>اعرض الخلاصة</button>
+          )}
+          {why && <div className="cs-takeaways">
+            {TAKEAWAYS.map((t, n) => (
+              <article key={t.q} style={{ animationDelay: `${n * 180}ms` }}>
+                <strong>{t.q}</strong>
+                <p>{t.a}</p>
+              </article>
+            ))}
+          </div>}
+          {!won && (
+            <button className="cs-btn primary big" onClick={() => dispatch({ type: "reviewAgain" })}>
+              راجع التقرير تاني
+            </button>
+          )}
+          <button className={`cs-btn big ${won ? "primary" : ""}`} onClick={() => dispatch({ type: "restart" })}>
+            <RotateCcw /> ابدأ من الأول
           </button>
         </>
       )}

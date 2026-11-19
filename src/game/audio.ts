@@ -47,3 +47,4 @@ export const sfx = {
   win: () => { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.4, "triangle", 0.12, i * 0.11)); },
   lose: () => { [392, 330, 262].forEach((f, i) => tone(f, 0.35, "square", 0.06, i * 0.18)); },
 };
+export const whoosh = () => { noise(0.45, 0.14, 800); tone(900, 0.4, "sine", 0.04, 0, 200); };
