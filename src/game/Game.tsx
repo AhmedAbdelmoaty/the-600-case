@@ -70,7 +70,7 @@ export default function Game() {
 function Scene({ k }: { k: SceneKey }) {
   const s = SCENES[k];
   return (
-    <div className="g-scene" aria-hidden>
+    <div className={`g-scene scene-${k}`} aria-hidden>
       <AnimatePresence initial={false}>
         <motion.picture key={k} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.6 }}>
           <source media="(max-width: 640px)" srcSet={s.p} />

@@ -3,10 +3,18 @@
   position:fixed;inset:0;overflow:hidden;background:hsl(var(--ink));color:hsl(var(--ink));font-family:'Cairo',sans-serif}
 .g600 button{font:inherit;cursor:pointer}
 .g-scene,.g-scene picture{position:absolute;inset:0}
-.g-scene img{width:100%;height:100%;object-fit:cover;animation:g-kenburns 22s ease-in-out infinite alternate}
+.g-scene img{width:100%;height:100%;object-fit:cover;will-change:transform;animation:g-kenburns 18s cubic-bezier(.4,0,.2,1) infinite alternate}
 .g-wash{position:absolute;inset:0;background:linear-gradient(180deg,hsl(var(--ink)/.25) 0%,hsl(var(--ink)/.05) 40%,hsl(var(--ink)/.55) 100%)}
 .g-wash.cover{background:radial-gradient(ellipse at center,hsl(var(--ink)/.35),hsl(var(--ink)/.85))}
-@keyframes g-kenburns{from{transform:scale(1.02) translate(0,0)}to{transform:scale(1.1) translate(-1.2%,-1%)}}
+@keyframes g-kenburns{from{transform:scale(1.03) translate3d(-.5%,-.35%,0)}to{transform:scale(1.12) translate3d(1.25%,.6%,0)}}
+.scene-cover img{animation-name:g-kenburns-cover;animation-duration:24s}
+.scene-meeting img,.scene-brief img{animation-name:g-kenburns-meeting;animation-duration:20s}
+.scene-desk img,.scene-corridor img{animation-name:g-kenburns-desk;animation-duration:19s}
+.scene-ceo img{animation-name:g-kenburns-ceo;animation-duration:18s}
+@keyframes g-kenburns-cover{from{transform:scale(1.04) translate3d(0,1.2%,0)}to{transform:scale(1.15) translate3d(-1.4%,-1%,0)}}
+@keyframes g-kenburns-meeting{from{transform:scale(1.025) translate3d(-1.1%,0,0)}to{transform:scale(1.115) translate3d(.8%,-.8%,0)}}
+@keyframes g-kenburns-desk{from{transform:scale(1.035) translate3d(.8%,.6%,0)}to{transform:scale(1.12) translate3d(-1.2%,-.45%,0)}}
+@keyframes g-kenburns-ceo{from{transform:scale(1.04) translate3d(-.75%,.4%,0)}to{transform:scale(1.13) translate3d(.8%,-.75%,0)}}
 .g-dip{position:fixed;inset:0;z-index:100;background:hsl(var(--ink));pointer-events:none}
 .g-hud{position:absolute;z-index:30;top:max(.75rem,env(safe-area-inset-top));inset-inline:.75rem;display:grid;grid-template-columns:1fr auto 1fr;align-items:start;pointer-events:none}
 .g-hud>*{pointer-events:auto}
@@ -37,13 +45,13 @@
 .g-role{margin-top:1rem;font-weight:700;opacity:.8;border:1px solid hsl(var(--paper)/.4);border-radius:999px;padding:.2rem .9rem}
 @keyframes g-cover-title{from{opacity:0;transform:translateY(1.5rem) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 /* dialogue */
-.g-dialogue{width:min(100%,64rem);display:grid;grid-template-columns:7rem 1fr;gap:1rem;padding:.75rem;border-radius:.6rem;border:1px solid hsl(var(--line));box-shadow:0 18px 45px hsl(var(--ink)/.4);text-align:right}
+.g-dialogue{width:min(100%,64rem);display:flex;gap:.9rem;align-items:flex-start;padding:.75rem;border-radius:.6rem;border:1px solid hsl(var(--line));box-shadow:0 18px 45px hsl(var(--ink)/.4);text-align:right}
 .g-dialogue.light{background:hsl(var(--ivory)/.98);color:hsl(var(--ink))}
 .g-dialogue.dark{background:hsl(var(--charcoal)/.97);color:hsl(var(--paper));border-color:hsl(var(--red))}
-.g-portrait{width:100%;aspect-ratio:3/4;border-radius:.45rem;overflow:hidden;background:hsl(var(--ivory));border:2px solid hsl(var(--line))}
+.g-portrait{width:5.4rem;height:5.4rem;aspect-ratio:1/1;flex-shrink:0;align-self:flex-start;border-radius:.6rem;overflow:hidden;background:hsl(var(--ivory));border:2px solid hsl(var(--line))}
 .g-dialogue.dark .g-portrait{border-color:hsl(var(--red))}
 .g-portrait img{width:100%;height:100%;object-fit:cover;object-position:top}
-.g-dialogue>div{display:flex;flex-direction:column;min-width:0}
+.g-dialogue>div{display:flex;flex:1;flex-direction:column;min-width:0}
 .g-dialogue header{display:flex;align-items:baseline;gap:.6rem;border-bottom:1px solid hsl(var(--line)/.5);padding-bottom:.45rem}
 .g-dialogue header span{font-weight:900;font-size:1.1rem;color:hsl(var(--red))}
 .g-dialogue.dark header span{color:hsl(var(--gold))}
@@ -148,7 +156,8 @@
 .g-confetti.c0{background:hsl(var(--red))}.g-confetti.c1{background:hsl(var(--gold))}.g-confetti.c2{background:hsl(var(--green))}
 @media(max-width:640px){
   .g-stage{padding:4.4rem .6rem max(.6rem,env(safe-area-inset-bottom));gap:.6rem}
-  .g-dialogue{grid-template-columns:4.6rem 1fr;gap:.6rem;padding:.6rem}
+  .g-dialogue{gap:.65rem;padding:.6rem}
+  .g-portrait{width:4.35rem;height:4.35rem}
   .g-dialogue p{font-size:1rem;line-height:1.75;min-height:3.4rem}
   .g-location-row{grid-template-columns:1fr}
   .g-location{min-height:4.4rem}
