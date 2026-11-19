@@ -30,3 +30,4 @@ use the editor.
 <!-- LOVABLE:END -->
 
 - Game logic lives in pure `src/game/engine.ts` (tested in `engine.test.ts`) with script text in `content.ts` and chart data in `chart.ts`; screens/art only render state, so art swaps never change win/loss rules.
+- Screens use The Analyst's full-bleed scene + bottom dialogue style (framer-motion); temporary art lives as asset pointers listed in `src/game/assets.ts` so final art swaps touch only that file.
