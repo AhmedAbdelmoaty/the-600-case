@@ -25,8 +25,12 @@ export default function Game() {
     sound(a, ref.current);
     raw(a);
   }, []);
-  useEffect(() => setMuted(muted), [muted]);
-  useEffect(() => window.scrollTo({ top: 0 }), [state.phase]);
+  useEffect(() => {
+    setMuted(muted);
+  }, [muted]);
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [state.phase]);
 
   if (state.phase === "intro") return <Intro go={() => dispatch({ type: "start" })} />;
   const station = STATION_OF[state.phase];
