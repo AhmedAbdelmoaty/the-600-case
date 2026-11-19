@@ -119,7 +119,7 @@ export function ExecutiveScene({
       <div className="window" aria-hidden />
       {line && (
         <div className={`scene-bubble ${line.who}`} aria-live="polite">
-          <span>{line.who === "ld" ? "رئيس التدريب (L&D)" : "المدير التنفيذي"}</span>
+          <span>{line.who === "tarek" ? "رئيس التدريب" : "المدير العام"}</span>
           <p>{line.text}</p>
         </div>
       )}
