@@ -1,5 +1,5 @@
 // Pure, deterministic game engine for "The 600 Case" (V2). No rendering here.
-export type Phase = "intro" | "meeting" | "office" | "email" | "verdict";
+export type Phase = "intro" | "meeting" | "office" | "decision" | "email" | "verdict";
 export type RecId = "expand" | "stop" | "pilot";
 export type Rank = "expert" | "calculated";
 
@@ -7,7 +7,7 @@ export interface State {
   phase: Phase;
   line: number;
   notebookOpened: boolean;
-  lastYearChecked: boolean;
+  officeEntered: boolean;
   picked: RecId | null;
   sent: RecId | null;
   order: RecId[];
@@ -31,7 +31,7 @@ export function initialState(): State {
     phase: "intro",
     line: 0,
     notebookOpened: false,
-    lastYearChecked: false,
+    officeEntered: false,
     picked: null,
     sent: null,
     order: RECS,
@@ -41,9 +41,10 @@ export function initialState(): State {
 export type Action =
   | { type: "start"; rng?: () => number }
   | { type: "next" }
+  | { type: "enterOffice" }
   | { type: "openNotebook" }
-  | { type: "checkLastYear" }
-  | { type: "toEmail" }
+  | { type: "toDecision" }
+  | { type: "composeEmail" }
   | { type: "backToOffice" }
   | { type: "pick"; id: RecId }
   | { type: "send" }
@@ -54,7 +55,7 @@ export const isWin = (id: RecId) => id === "pilot";
 
 export function rankOf(state: State): Rank | null {
   if (!state.sent || !isWin(state.sent)) return null;
-  return state.notebookOpened && state.lastYearChecked ? "expert" : "calculated";
+  return state.notebookOpened ? "expert" : "calculated";
 }
 
 export function reduce(state: State, action: Action): State {
@@ -69,14 +70,16 @@ export function reduce(state: State, action: Action): State {
         : { ...state, phase: "office" };
     case "openNotebook":
       return state.phase === "office" ? { ...state, notebookOpened: true } : state;
-    case "checkLastYear":
-      return state.phase === "office" ? { ...state, lastYearChecked: true } : state;
-    case "toEmail":
-      return state.phase === "office" ? { ...state, phase: "email" } : state;
+    case "enterOffice":
+      return state.phase === "office" ? { ...state, officeEntered: true } : state;
+    case "toDecision":
+      return state.phase === "office" ? { ...state, phase: "decision" } : state;
+    case "composeEmail":
+      return state.phase === "decision" && state.picked ? { ...state, phase: "email" } : state;
     case "backToOffice":
-      return state.phase === "email" ? { ...state, phase: "office" } : state;
+      return state.phase === "email" || state.phase === "decision" ? { ...state, phase: "office" } : state;
     case "pick":
-      return state.phase === "email" ? { ...state, picked: action.id } : state;
+      return state.phase === "decision" ? { ...state, picked: action.id } : state;
     case "send":
       if (state.phase !== "email" || !state.picked) return state;
       return { ...state, phase: "verdict", sent: state.picked };
@@ -92,6 +95,7 @@ export const STATION_OF: Record<Phase, number> = {
   intro: 1,
   meeting: 1,
   office: 2,
+  decision: 3,
   email: 3,
   verdict: 4,
 };

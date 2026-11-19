@@ -4,13 +4,13 @@ import Game from "@/game/Game";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "The 600 Case — قضية الـ ٦٠٠ موظف" },
+      { title: "Training Budget Case" },
       {
         name: "description",
         content:
           "لعبة قرار: تقرير تدريب على مكتب المدير التنفيذي… هل العلاقة بين التدريب والأداء تكفي لزيادة الميزانية؟",
       },
-      { property: "og:title", content: "The 600 Case — قضية الـ ٦٠٠ موظف" },
+      { property: "og:title", content: "Training Budget Case" },
       {
         property: "og:description",
         content: "راجع الأدلة وقرّر قبل ما المدير يمضي على زيادة ميزانية التدريب.",

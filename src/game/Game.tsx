@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, ChevronLeft, DoorOpen, FileText, Home, Lightbulb, Mail, MonitorSmartphone, RotateCcw, Send, Star, Trophy, Volume2, VolumeX, X } from "lucide-react";
 import { CHART_FROM_LINE, initialState, isWin, rankOf, reduce, type Action, type State } from "./engine";
-import { MEETING, NOTEBOOK, RANKS, RECS, SUBTITLE_AR, TAGLINE, TAKEAWAYS, TITLE, VERDICTS, type Line, type Speaker } from "./content";
-import { MARK, PORTRAITS, SCENES, type SceneKey } from "./assets";
+import { EMAIL_BODIES, MEETING, NOTEBOOK, RANKS, RECS, SUBTITLE_AR, TAKEAWAYS, TITLE, VERDICTS, type Line, type Speaker } from "./content";
+import { PORTRAITS, SCENES, type SceneKey } from "./assets";
 import { Chart } from "./Chart";
 import { setMuted, sfx, whoosh } from "./audio";
 import "./game.css";
@@ -12,7 +12,7 @@ const WHO: Record<Speaker, { name: string; role: string; tone: "dark" | "light" 
   tarek: { name: "طارق", role: "رئيس التدريب والتطوير", tone: "dark" },
   sherif: { name: "م. شريف", role: "المدير العام", tone: "light" },
 };
-const STATION: Record<State["phase"], string> = { intro: "", meeting: "قاعة الاجتماعات", office: "مكتبك", email: "مكتبك · الإيميل", verdict: "مكتب المدير العام" };
+const STATION: Record<State["phase"], string> = { intro: "", meeting: "قاعة الاجتماعات", office: "مكتبك", decision: "قرار الميزانية", email: "صياغة الإيميل", verdict: "مكتب المدير العام" };
 
 export default function Game() {
   const [state, raw] = useReducer(reduce, undefined, initialState);
@@ -46,7 +46,7 @@ export default function Game() {
             <button aria-label={muted ? "تشغيل الصوت" : "كتم الصوت"} onClick={() => setMute((m) => !m)}>{muted ? <VolumeX /> : <Volume2 />}</button>
           </div>
           <motion.div key={state.phase} className="g-hud-place" initial={{ y: -12, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-            <small>The 600 Case</small>
+            <small>{TITLE}</small>
             <b>{STATION[state.phase]}</b>
           </motion.div>
           <span />
@@ -56,7 +56,8 @@ export default function Game() {
         <motion.div key={state.phase} className="g-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
           {state.phase === "intro" && <Cover go={() => { sfx.tap(); travel({ type: "start" }); }} />}
           {state.phase === "meeting" && <Meeting state={state} next={() => (state.line + 1 < MEETING.length ? (sfx.tap(), dispatch({ type: "next" })) : travel({ type: "next" }))} />}
-          {state.phase === "office" && <Office state={state} dispatch={dispatch} />}
+      {state.phase === "office" && <Office state={state} dispatch={dispatch} />}
+      {state.phase === "decision" && <Decision state={state} dispatch={dispatch} />}
           {state.phase === "email" && <Email state={state} dispatch={dispatch} travel={travel} />}
           {state.phase === "verdict" && <Verdict state={state} dispatch={dispatch} travel={travel} />}
         </motion.div>
@@ -84,15 +85,12 @@ function Scene({ k }: { k: SceneKey }) {
 function Cover({ go }: { go: () => void }) {
   return (
     <section className="g-cover">
-      <motion.img src={MARK} alt="The Analyst" className="g-cover-mark" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 200, damping: 14 }} />
-      <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>القضية التانية</motion.p>
-      <motion.h1 dir="ltr" initial={{ opacity: 0, y: 20, letterSpacing: "0.3em" }} animate={{ opacity: 1, y: 0, letterSpacing: "0em" }} transition={{ delay: 0.3, duration: 0.7 }}>{TITLE}</motion.h1>
-      <motion.h2 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>{SUBTITLE_AR}</motion.h2>
-      <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>{TAGLINE}</motion.span>
-      <motion.button className="g-btn primary big" onClick={go} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+      <motion.h1 dir="ltr" initial={{ opacity: 0, y: 20, letterSpacing: "0.3em" }} animate={{ opacity: 1, y: 0, letterSpacing: "0em" }} transition={{ duration: 0.7 }}>{TITLE}</motion.h1>
+      <motion.h2 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>{SUBTITLE_AR}</motion.h2>
+      <motion.button className="g-btn primary big" onClick={go} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
         ابدأ الآن
       </motion.button>
-      <motion.small className="g-role" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}>دورك: مدير الموارد البشرية</motion.small>
+      <motion.small className="g-role" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }}>دورك: مدير الموارد البشرية</motion.small>
     </section>
   );
 }
@@ -160,15 +158,14 @@ function Meeting({ state, next }: { state: State; next: () => void }) {
 
 function Office({ state, dispatch }: { state: State; dispatch: (a: Action) => void }) {
   const [open, setOpen] = useState<"chart" | "notes" | null>(null);
-  const [arrived, setArrived] = useState(false);
-  if (!arrived)
+  if (!state.officeEntered)
     return (
       <div className="g-stage center">
         <motion.section className="g-arrive" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
           <small>بعد الاجتماع</small>
           <h2>رجعت مكتبك</h2>
-          <p>التقرير على اللابتوب، ومحضر الاجتماع على المكتب. م. شريف مستني توصيتك.</p>
-          <button className="g-btn primary big" onClick={() => { sfx.paper(); setArrived(true); }}><DoorOpen /> ادخل المكتب</button>
+          <p>التقرير على اللابتوب، وملخص الاجتماع على المكتب. م. شريف مستني توصيتك.</p>
+          <button className="g-btn primary big" onClick={() => { sfx.door(); dispatch({ type: "enterOffice" }); }}><DoorOpen /> ادخل المكتب</button>
         </motion.section>
       </div>
     );
@@ -178,20 +175,20 @@ function Office({ state, dispatch }: { state: State; dispatch: (a: Action) => vo
         <header><small>مكتب مدير الموارد البشرية</small><h2>تحب تبدأ بإيه؟</h2></header>
         <div className="g-location-row">
           {[
-            { id: "chart" as const, Icon: MonitorSmartphone, t: "شاشة اللابتوب", s: "شارت الـ ٦٠٠ موظف", seen: state.lastYearChecked },
-            { id: "notes" as const, Icon: BookOpen, t: "محضر الاجتماع", s: "اللي اتقال في القاعة", seen: state.notebookOpened },
+            { id: "chart" as const, Icon: MonitorSmartphone, t: "شاشة اللابتوب", s: "شارت الـ ٦٠٠ موظف", seen: false },
+            { id: "notes" as const, Icon: BookOpen, t: "ملخص الاجتماع", s: "اللي اتقال في القاعة", seen: state.notebookOpened },
             { id: "mail" as const, Icon: Mail, t: "اكتب التوصية", s: "إيميل لـ م. شريف", seen: false },
           ].map((o, i) => (
             <motion.button
               key={o.id}
-              className={`g-location ${o.id === "mail" ? "is-main" : ""}`}
+              className={`g-location station-${o.id} ${o.id === "mail" ? "is-main" : ""}`}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.08 * i }}
               whileHover={{ y: -4 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => {
-                if (o.id === "mail") { sfx.paper(); dispatch({ type: "toEmail" }); return; }
+                if (o.id === "mail") { sfx.paper(); dispatch({ type: "toDecision" }); return; }
                 sfx.paper();
                 if (o.id === "notes") dispatch({ type: "openNotebook" });
                 setOpen(o.id);
@@ -212,17 +209,14 @@ function Office({ state, dispatch }: { state: State; dispatch: (a: Action) => vo
               {open === "chart" ? (
                 <>
                   <header className="g-doc-head"><span><FileText /> تقرير رسمي</span><h3>ساعات التدريب مقابل تقييم الأداء</h3><small>صادر عن: إدارة التدريب والتطوير · عيّنة من ٦٠٠ موظف</small></header>
-                  <Chart colored={state.lastYearChecked} stagger={0.03} />
+                  <Chart stagger={0.03} />
                   <footer className="g-doc-foot">
-                    <button className="g-btn secondary" disabled={state.lastYearChecked} onClick={() => { sfx.chime(); dispatch({ type: "checkLastYear" }); }}>
-                      اعرض تقييم السنة اللي فاتت
-                    </button>
                     <motion.span className="g-seal" initial={{ scale: 2.2, rotate: -30, opacity: 0 }} animate={{ scale: 1, rotate: -10, opacity: 1 }} transition={{ delay: 0.6, type: "spring", damping: 9 }}>معتمد</motion.span>
                   </footer>
                 </>
               ) : (
                 <>
-                  <header className="g-doc-head"><span><BookOpen /> محضر الاجتماع</span><h3>اجتماع ميزانية التدريب</h3><small>الحضور: م. شريف · أ. طارق · مدير الموارد البشرية</small></header>
+                  <header className="g-doc-head"><span><BookOpen /> ملخص الاجتماع</span><h3>اجتماع ميزانية التدريب</h3><small>الحضور: م. شريف · أ. طارق · مدير الموارد البشرية</small></header>
                   <ol className="g-notes">
                     {NOTEBOOK.map((n, i) => (
                       <motion.li key={n} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 + i * 0.12 }}>{n}</motion.li>
@@ -238,6 +232,28 @@ function Office({ state, dispatch }: { state: State; dispatch: (a: Action) => vo
   );
 }
 
+function Decision({ state, dispatch }: { state: State; dispatch: (a: Action) => void }) {
+  return (
+    <div className="g-stage center">
+      <motion.section className="g-decision" initial={{ y: 28, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+        <small>قرار تنفيذي</small>
+        <h2>م. شريف مستني رأيك بخصوص ميزانية التدريب.. ما هي توصيتك؟</h2>
+        <div className="g-recs" role="radiogroup">
+          {state.order.map((id) => (
+            <button key={id} role="radio" aria-checked={state.picked === id} className={`g-rec ${state.picked === id ? "on" : ""}`} onClick={() => { sfx.pen(); dispatch({ type: "pick", id }); }}>
+              <i aria-hidden />{RECS[id]}
+            </button>
+          ))}
+        </div>
+        <div className="g-mail-actions">
+          <button className="g-btn primary big" disabled={!state.picked} onClick={() => dispatch({ type: "composeEmail" })}><FileText /> صياغة التوصية</button>
+          <button className="g-btn secondary" onClick={() => dispatch({ type: "backToOffice" })}>ارجع للمكتب</button>
+        </div>
+      </motion.section>
+    </div>
+  );
+}
+
 function Email({ state, dispatch, travel }: { state: State; dispatch: (a: Action) => void; travel: (a: Action) => void }) {
   const [flying, setFlying] = useState(false);
   return (
@@ -248,17 +264,12 @@ function Email({ state, dispatch, travel }: { state: State; dispatch: (a: Action
           <p><b>إلى:</b> م. شريف — المدير العام</p>
           <p><b>الموضوع:</b> توصية بخصوص ميزانية التدريب</p>
         </div>
-        <p className="g-mail-hi">م. شريف، بعد مراجعة التقرير، توصيتي:</p>
-        <div className="g-recs" role="radiogroup">
-          {state.order.map((id, i) => (
-            <motion.button key={id} role="radio" aria-checked={state.picked === id} className={`g-rec ${state.picked === id ? "on" : ""}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.1 }} onClick={() => { sfx.pen(); dispatch({ type: "pick", id }); }}>
-              <i aria-hidden />{RECS[id]}
-            </motion.button>
-          ))}
-        </div>
+        <p className="g-mail-hi">م. شريف،</p>
+        <p className="g-mail-body">{EMAIL_BODIES[state.picked!]}</p>
+        <p className="g-mail-sign">وتفضلوا بقبول فائق الاحترام،<br />مدير الموارد البشرية</p>
         <div className="g-mail-actions">
           <button className="g-btn primary big" disabled={!state.picked || flying} onClick={() => { setFlying(true); whoosh(); window.setTimeout(() => travel({ type: "send" }), 700); }}>
-            <Send /> إرسال
+            <Send /> إرسال الإيميل
           </button>
           <button className="g-btn secondary" disabled={flying} onClick={() => { sfx.tap(); dispatch({ type: "backToOffice" }); }}>ارجع للمكتب</button>
         </div>
