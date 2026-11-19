@@ -3,8 +3,8 @@ import * as content from "./content";
 
 const { D1_OPTIONS, DIALOGUE, FINAL_OPTIONS, FOLDER_CONTENT, SUBTITLE_AR, TAGLINE, TEST_OPTIONS } =
   content;
-const INTRO_MISSION = (content as Record<string, unknown>).INTRO_MISSION;
-const TEST_PROMPT = (content as Record<string, unknown>).TEST_PROMPT;
+const INTRO_MISSION = (content as Record<string, unknown>)["INTRO_MISSION"];
+const TEST_PROMPT = (content as Record<string, unknown>)["TEST_PROMPT"];
 
 describe("canonical Egyptian Arabic game script", () => {
   it("uses the specified intro copy and two-line opening", () => {

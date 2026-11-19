@@ -307,7 +307,7 @@ function Body({ state, dispatch }: { state: State; dispatch: (action: Action) =>
       return (
         <main className="panel">
           <ExecutiveScene
-            mood={line.mood}
+            mood={line.mood ?? "thinking"}
             line={line}
             shake={Boolean(picked && isTestMistake(picked))}
           />
