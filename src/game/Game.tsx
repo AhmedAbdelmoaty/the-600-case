@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BookOpen, ChevronLeft, DoorOpen, FileText, Home, Lightbulb, Mail, MonitorSmartphone, RotateCcw, Send, Star, Trophy, Volume2, VolumeX, X } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronLeft, DoorOpen, FileText, Home, Lightbulb, Mail, MonitorSmartphone, RotateCcw, Send, Smartphone, Star, Trophy, Volume2, VolumeX, X } from "lucide-react";
 import { CHART_FROM_LINE, DEADLINE_SECONDS, initialState, isWin, rankOf, reduce, type Action, type State } from "./engine";
 import { EMAIL_BODIES, MEETING, NOTEBOOK, RANKS, RECS, SUBTITLE_AR, TAKEAWAYS, TIMEOUT, TITLE, VERDICTS, type Line, type Speaker } from "./content";
 import { PORTRAITS, SCENES, type SceneKey } from "./assets";
@@ -13,6 +13,10 @@ const WHO: Record<Speaker, { name: string; role: string; tone: "dark" | "light" 
   sherif: { name: "م. شريف", role: "المدير العام", tone: "light" },
 };
 const STATION: Record<State["phase"], string> = { intro: "", meeting: "قاعة الاجتماعات", office: "مكتبك", decision: "قرار الميزانية", email: "صياغة الإيميل", verdict: "مكتب المدير العام" };
+const SHERIF_MESSAGES = [
+  "يا بطل، طارق خلص عرضه وقاعدين مستنيين إيميل التوصية بتاعك عشان نقفل الميزانية.",
+  "الوقت بيجري والمالية هتقفل علينا السيستم.. ابعتلي الميل فورًا علشان ألحق أبص فيه!",
+];
 
 export default function Game() {
   const [state, raw] = useReducer(reduce, undefined, initialState);
@@ -35,15 +39,31 @@ export default function Game() {
 
   const timerOn = state.officeEntered && (state.phase === "office" || state.phase === "decision" || state.phase === "email");
   const [left, setLeft] = useState(DEADLINE_SECONDS);
-  const [nudge, setNudge] = useState(false);
+  const [messageCount, setMessageCount] = useState(0);
+  const [phoneOpen, setPhoneOpen] = useState(true);
+  const [phoneBuzz, setPhoneBuzz] = useState(false);
   useEffect(() => {
-    if (!timerOn) { setLeft(DEADLINE_SECONDS); return; }
+    if (!timerOn) {
+      setLeft(DEADLINE_SECONDS);
+      setMessageCount(0);
+      setPhoneOpen(true);
+      return;
+    }
     const end = Date.now() + DEADLINE_SECONDS * 1000;
-    let warned = false;
+    let firstMessageSent = false;
+    let secondMessageSent = false;
+    const receiveMessage = (count: number) => {
+      setMessageCount(count);
+      setPhoneOpen(true);
+      setPhoneBuzz(true);
+      sfx.chime();
+      window.setTimeout(() => setPhoneBuzz(false), 450);
+    };
     const id = window.setInterval(() => {
       const l = Math.max(0, Math.ceil((end - Date.now()) / 1000));
       setLeft(l);
-      if (l <= 44 && !warned) { warned = true; setNudge(true); window.setTimeout(() => setNudge(false), 3800); }
+      if (l <= 45 && !firstMessageSent) { firstMessageSent = true; receiveMessage(1); }
+      if (l <= 20 && !secondMessageSent) { secondMessageSent = true; receiveMessage(2); }
       if (l > 0 && l < 20) tick(l < 10);
       if (l === 0) { window.clearInterval(id); travel({ type: "timeout" }); }
     }, 1000);
@@ -75,13 +95,7 @@ export default function Game() {
           ) : <span />}
         </header>
       )}
-      <AnimatePresence>
-        {nudge && timerOn && (
-          <motion.div className="g-nudge" initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }}>
-            <b>م. شريف:</b> ها يا مدير؟ أنا وطارق مستنيين الإيميل عشان نقفل الميزانية.
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {timerOn && <PhoneNotifier count={messageCount} open={phoneOpen} buzzing={phoneBuzz} onToggle={() => setPhoneOpen((value) => !value)} />}
       <AnimatePresence mode="wait">
         <motion.div key={state.phase} className="g-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
           {state.phase === "intro" && <Cover go={() => { sfx.tap(); travel({ type: "start" }); }} />}
@@ -94,6 +108,39 @@ export default function Game() {
       </AnimatePresence>
       <AnimatePresence>{fade && <motion.div className="g-dip" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.38 }} />}</AnimatePresence>
     </div>
+  );
+}
+
+function PhoneNotifier({ count, open, buzzing, onToggle }: { count: number; open: boolean; buzzing: boolean; onToggle: () => void }) {
+  if (!count) return null;
+  if (!open) {
+    return <button className="g-phone-mini" onClick={onToggle} aria-label="فتح رسائل م. شريف"><Smartphone /><b>{count}</b></button>;
+  }
+  return (
+    <motion.div className={`g-phone-device ${buzzing ? "g-phone-buzz" : ""}`} initial={{ y: 120, opacity: 0, scale: 0.9 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 120, opacity: 0, scale: 0.9 }} transition={{ type: "spring", stiffness: 260, damping: 24 }}>
+      <i className="g-phone-btn g-phone-btn-power" aria-hidden />
+      <i className="g-phone-btn g-phone-btn-vol" aria-hidden />
+      <section className="g-phone-screen" aria-label="رسائل واتساب من م. شريف">
+        <div className="g-phone-island" aria-hidden><span className="g-phone-camera" /><span className="g-phone-speaker" /></div>
+        <div className="g-phone-status-bar"><span>12:44</span><span className="g-phone-status-icons"><span>5G</span><span>📶</span><span>🔋 85%</span></span></div>
+        <button className="g-phone-head" onClick={onToggle} aria-label="تصغير الرسائل">
+          <img src={PORTRAITS.sherif} alt="م. شريف" />
+          <span className="g-phone-meta"><b>م. شريف (المدير العام)</b><small>متصل الآن 🟢</small></span>
+          <ChevronDown />
+        </button>
+        <div className="g-phone-body" aria-live="polite">
+          <AnimatePresence initial={false}>
+            {SHERIF_MESSAGES.slice(0, count).map((message) => (
+              <motion.article key={message} className="g-msg-bubble" initial={{ opacity: 0, y: 12, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.22, ease: "easeOut" }}>
+                {message}
+                <span className="g-msg-footer"><time>الآن</time><i className="g-msg-ticks">✓✓</i></span>
+              </motion.article>
+            ))}
+          </AnimatePresence>
+        </div>
+        <div className="g-phone-home-bar" aria-hidden><i className="g-home-pill" /></div>
+      </section>
+    </motion.div>
   );
 }
 
@@ -243,7 +290,7 @@ function Office({ state, dispatch }: { state: State; dispatch: (a: Action) => vo
       <AnimatePresence>
         {open && (
           <motion.div className="g-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(null)} role="dialog" aria-modal="true">
-            <motion.article className="g-doc" onClick={(e) => e.stopPropagation()} initial={{ y: 60, rotate: -3, opacity: 0 }} animate={{ y: 0, rotate: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} transition={{ type: "spring", stiffness: 220, damping: 22 }}>
+            <motion.article className="g-doc" onClick={(e) => e.stopPropagation()} initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 16, opacity: 0 }} transition={{ duration: 0.22, ease: "easeOut" }}>
               <button className="g-close" aria-label="إغلاق" onClick={() => setOpen(null)}><X /></button>
               {open === "chart" ? (
                 <>
