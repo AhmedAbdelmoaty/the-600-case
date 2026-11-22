@@ -67,15 +67,13 @@ export default function Game() {
             <small>{TITLE}</small>
             <b>{STATION[state.phase]}</b>
           </motion.div>
-          <span />
+          {timerOn ? (
+            <div className={`g-timer ${urgency}`} role="timer" aria-live="off" aria-label="المهلة قبل تسليم الميزانية" title="المهلة قبل تسليم الميزانية">
+              <b>{`${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`}</b>
+              <i><motion.em animate={{ width: `${(left / DEADLINE_SECONDS) * 100}%` }} transition={{ ease: "linear", duration: 1 }} /></i>
+            </div>
+          ) : <span />}
         </header>
-      )}
-      {timerOn && (
-        <div className={`g-timer ${urgency}`} role="timer" aria-live="off">
-          <span>المهلة قبل تسليم الميزانية</span>
-          <b>{`${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`}</b>
-          <i><motion.em animate={{ width: `${(left / DEADLINE_SECONDS) * 100}%` }} transition={{ ease: "linear", duration: 1 }} /></i>
-        </div>
       )}
       <AnimatePresence>
         {nudge && timerOn && (
@@ -252,7 +250,7 @@ function Office({ state, dispatch }: { state: State; dispatch: (a: Action) => vo
                   <header className="g-doc-head"><span><FileText /> تقرير رسمي</span><h3>ساعات التدريب مقابل تقييم الأداء</h3><small>صادر عن: إدارة التدريب والتطوير · عيّنة من ٦٠٠ موظف</small></header>
                   <Chart stagger={0.03} />
                   <footer className="g-doc-foot">
-                    <motion.span className="g-seal" initial={{ scale: 2.2, rotate: -30, opacity: 0 }} animate={{ scale: 1, rotate: -10, opacity: 1 }} transition={{ delay: 0.6, type: "spring", damping: 9 }}>معتمد</motion.span>
+                    <span className="g-seal">معتمد</span>
                   </footer>
                 </>
               ) : (
