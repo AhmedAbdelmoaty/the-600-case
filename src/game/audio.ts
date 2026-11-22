@@ -21,3 +21,16 @@ export const sfx = {
   lose: () => play("lose.mp3", 0.58),
 };
 export const whoosh = () => play("woosh.mp3", 0.42);
+let ctx: AudioContext | null = null;
+export function tick(urgent = false) {
+  if (muted || typeof window === "undefined") return;
+  try {
+    ctx ??= new AudioContext();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.value = urgent ? 1100 : 820;
+    g.gain.setValueAtTime(0.12, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+    o.connect(g).connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.09);
+  } catch { /* ignore */ }
+}

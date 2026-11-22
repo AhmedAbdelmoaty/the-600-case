@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, ChevronLeft, DoorOpen, FileText, Home, Lightbulb, Mail, MonitorSmartphone, RotateCcw, Send, Star, Trophy, Volume2, VolumeX, X } from "lucide-react";
-import { CHART_FROM_LINE, initialState, isWin, rankOf, reduce, type Action, type State } from "./engine";
-import { EMAIL_BODIES, MEETING, NOTEBOOK, RANKS, RECS, SUBTITLE_AR, TAKEAWAYS, TITLE, VERDICTS, type Line, type Speaker } from "./content";
+import { CHART_FROM_LINE, DEADLINE_SECONDS, initialState, isWin, rankOf, reduce, type Action, type State } from "./engine";
+import { EMAIL_BODIES, MEETING, NOTEBOOK, RANKS, RECS, SUBTITLE_AR, TAKEAWAYS, TIMEOUT, TITLE, VERDICTS, type Line, type Speaker } from "./content";
 import { PORTRAITS, SCENES, type SceneKey } from "./assets";
 import { Chart } from "./Chart";
-import { setMuted, sfx, whoosh } from "./audio";
+import { setMuted, sfx, tick, whoosh } from "./audio";
 import "./game.css";
 
 const WHO: Record<Speaker, { name: string; role: string; tone: "dark" | "light" }> = {
@@ -33,6 +33,24 @@ export default function Game() {
     }, 420);
   }, []);
 
+  const timerOn = state.officeEntered && (state.phase === "office" || state.phase === "decision" || state.phase === "email");
+  const [left, setLeft] = useState(DEADLINE_SECONDS);
+  const [nudge, setNudge] = useState(false);
+  useEffect(() => {
+    if (!timerOn) { setLeft(DEADLINE_SECONDS); return; }
+    const end = Date.now() + DEADLINE_SECONDS * 1000;
+    let warned = false;
+    const id = window.setInterval(() => {
+      const l = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+      setLeft(l);
+      if (l <= 44 && !warned) { warned = true; setNudge(true); window.setTimeout(() => setNudge(false), 3800); }
+      if (l > 0 && l < 20) tick(l < 10);
+      if (l === 0) { window.clearInterval(id); travel({ type: "timeout" }); }
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [timerOn, travel]);
+  const urgency = left < 20 ? "red" : left < 45 ? "amber" : "calm";
+
   const scene: SceneKey =
     state.phase === "intro" ? "cover" : state.phase === "meeting" ? (state.line >= CHART_FROM_LINE ? "meeting" : "brief") : state.phase === "verdict" ? "ceo" : "desk";
 
@@ -52,6 +70,20 @@ export default function Game() {
           <span />
         </header>
       )}
+      {timerOn && (
+        <div className={`g-timer ${urgency}`} role="timer" aria-live="off">
+          <span>المهلة قبل تسليم الميزانية</span>
+          <b>{`${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`}</b>
+          <i><motion.em animate={{ width: `${(left / DEADLINE_SECONDS) * 100}%` }} transition={{ ease: "linear", duration: 1 }} /></i>
+        </div>
+      )}
+      <AnimatePresence>
+        {nudge && timerOn && (
+          <motion.div className="g-nudge" initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }}>
+            <b>م. شريف:</b> ها يا مدير؟ أنا وطارق مستنيين الإيميل عشان نقفل الميزانية.
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AnimatePresence mode="wait">
         <motion.div key={state.phase} className="g-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
           {state.phase === "intro" && <Cover go={() => { sfx.tap(); travel({ type: "start" }); }} />}
@@ -109,6 +141,15 @@ function Dialogue({ line, index, total, onNext, nextLabel = "التالي" }: { 
     const t = window.setTimeout(() => setShown((n) => n + 2), 26);
     return () => window.clearTimeout(t);
   }, [shown, done]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== "Space" && e.key !== "Enter") return;
+      e.preventDefault();
+      if (done) onNext(); else setShown(chars.length);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [done, onNext, chars.length]);
   return (
     <motion.section key={`${index}-${line.who}`} className={`g-dialogue ${who.tone} s-${line.who}`} initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 260, damping: 24 }}>
       <motion.span className="g-portrait" initial={{ scale: 0.8 }} animate={{ scale: 1 }}>
@@ -279,9 +320,8 @@ function Email({ state, dispatch, travel }: { state: State; dispatch: (a: Action
 }
 
 function Verdict({ state, dispatch, travel }: { state: State; dispatch: (a: Action) => void; travel: (a: Action) => void }) {
-  const sent = state.sent!;
-  const v = VERDICTS[sent];
-  const won = isWin(sent);
+  const v = state.timedOut ? TIMEOUT : VERDICTS[state.sent!];
+  const won = !state.timedOut && isWin(state.sent!);
   const [i, setI] = useState(0);
   const [stage, setStage] = useState<"talk" | "stamp" | "result">("talk");
   const timer = useRef<number | undefined>(undefined);
@@ -299,55 +339,55 @@ function Verdict({ state, dispatch, travel }: { state: State; dispatch: (a: Acti
     );
   if (stage === "stamp")
     return (
-      <div className="g-stage center">
+      <motion.div className="g-stage center" animate={{ x: [0, -6, 6, -4, 4, 0], y: [0, 3, -3, 2, 0] }} transition={{ delay: 0.25, duration: 0.4 }}>
         <motion.div className={`g-stamp ${won ? "good" : "bad"}`} initial={{ scale: 3, rotate: -25, opacity: 0 }} animate={{ scale: 1, rotate: -12, opacity: 1 }} transition={{ type: "spring", damping: 8, stiffness: 200 }}>
           {v.stamp}
         </motion.div>
-      </div>
+      </motion.div>
     );
   return <Results state={state} travel={travel} />;
 }
 
 function Results({ state, travel }: { state: State; travel: (a: Action) => void }) {
-  const won = isWin(state.sent!);
+  const won = !state.timedOut && isWin(state.sent!);
   const rank = rankOf(state);
   const stars = won ? (rank === "expert" ? 3 : 2) : 0;
-  const [why, setWhy] = useState(won);
+  const stamp = state.timedOut ? TIMEOUT.stamp : VERDICTS[state.sent!].stamp;
   const confetti = useMemo(() => (won ? Array.from({ length: 34 }, (_, i) => ({ i, x: (i * 37) % 100, d: 2.6 + (i % 5) * 0.45, delay: (i % 7) * 0.18, r: (i * 53) % 360, c: i % 3 })) : []), [won]);
   return (
-    <div className="g-stage center scroll">
+    <div className="g-stage center">
       {confetti.map((p) => (
         <motion.i key={p.i} className={`g-confetti c${p.c}`} style={{ left: `${p.x}%` }} initial={{ y: -40, rotate: p.r, opacity: 0 }} animate={{ y: "105vh", rotate: p.r + 540, opacity: [0, 1, 1, 0] }} transition={{ duration: p.d, delay: p.delay, ease: "easeIn" }} aria-hidden />
       ))}
       <motion.section className={`g-results ${won ? "is-win" : "is-loss"}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <motion.div className="g-status" initial={{ y: -16, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>{won ? "التوصية اتعتمدت" : "التوصية اتنفذت.. والنتيجة ما كانتش مطمّنة"}</motion.div>
-        <motion.h2 initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 260, damping: 14 }}>
-          {won && rank ? RANKS[rank] : VERDICTS[state.sent!].stamp}
-        </motion.h2>
-        <div className="g-trophy-wrap">
-          {won && <span className="g-rays" aria-hidden />}
-          <motion.div className="g-trophy" initial={{ y: 60, opacity: 0, scale: 0.6 }} animate={won ? { y: 0, opacity: 1, scale: 1 } : { y: 0, opacity: 1, scale: 0.92, rotate: [0, -6, 6, -3, 0] }} transition={{ delay: 0.3, duration: won ? 0.6 : 1.1 }}>
-            {won ? <Trophy /> : <FileText />}
-          </motion.div>
-          <div className="g-stars" aria-label={`${stars} من ٣ نجوم`}>
-            {[0, 1, 2].map((n) => (
-              <motion.span key={n} className={n < stars ? "lit" : ""} initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.8 + n * 0.22, type: "spring", stiffness: 300 }}><Star /></motion.span>
-            ))}
+        <div className="g-res-main">
+          <motion.div className="g-status" initial={{ y: -16, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>{won ? "التوصية اتعتمدت" : state.timedOut ? "الإيميل ما وصلش في الميعاد" : "التوصية اتنفذت.. والنتيجة ما كانتش مطمّنة"}</motion.div>
+          <motion.h2 initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 260, damping: 14 }}>
+            {won && rank ? RANKS[rank] : stamp}
+          </motion.h2>
+          <div className="g-trophy-wrap">
+            {won && <span className="g-rays" aria-hidden />}
+            <motion.div className="g-trophy" initial={{ y: 60, opacity: 0, scale: 0.6 }} animate={won ? { y: 0, opacity: 1, scale: 1 } : { y: 0, opacity: 1, scale: 0.92, rotate: [0, -6, 6, -3, 0] }} transition={{ delay: 0.3, duration: won ? 0.6 : 1.1 }}>
+              {won ? <Trophy /> : <FileText />}
+            </motion.div>
+            <div className="g-stars" aria-label={`${stars} من ٣ نجوم`}>
+              {[0, 1, 2].map((n) => (
+                <motion.span key={n} className={n < stars ? "lit" : ""} initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.8 + n * 0.22, type: "spring", stiffness: 300 }}><Star /></motion.span>
+              ))}
+            </div>
           </div>
         </div>
-        {!why && <button className="g-btn quiet" onClick={() => setWhy(true)}><Lightbulb /> اعرض الخلاصة</button>}
-        {why && (
-          <div className="g-takeaways">
-            {TAKEAWAYS.map((t, n) => (
-              <motion.article key={t.q} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2 + n * 0.18 }}>
-                <strong>{t.q}</strong>
-                <p>{t.a}</p>
-              </motion.article>
-            ))}
-          </div>
-        )}
+        <div className="g-takeaways">
+          <h3><Lightbulb /> الخلاصة</h3>
+          {TAKEAWAYS.map((t, n) => (
+            <motion.article key={t.q} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1 + n * 0.18 }}>
+              <strong>{t.q}</strong>
+              <p>{t.a}</p>
+            </motion.article>
+          ))}
+        </div>
         <div className="g-result-actions">
-          {!won && <button className="g-btn primary big" onClick={() => travel({ type: "reviewAgain" })}>راجع التقرير تاني</button>}
+          {!won && <button className="g-btn primary big" onClick={() => travel({ type: "reviewAgain" })}>{state.timedOut ? "حاول تاني والحق الميعاد" : "راجع التقرير تاني"}</button>}
           <button className={`g-btn big ${won ? "primary" : "secondary"}`} onClick={() => travel({ type: "restart" })}><RotateCcw /> العب من الأول</button>
         </div>
       </motion.section>

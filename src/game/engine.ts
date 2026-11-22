@@ -11,8 +11,10 @@ export interface State {
   picked: RecId | null;
   sent: RecId | null;
   order: RecId[];
+  timedOut: boolean;
 }
 
+export const DEADLINE_SECONDS = 90;
 export const MEETING_LENGTH = 8;
 export const CHART_FROM_LINE = 2;
 const RECS: RecId[] = ["expand", "stop", "pilot"];
@@ -35,6 +37,7 @@ export function initialState(): State {
     picked: null,
     sent: null,
     order: RECS,
+    timedOut: false,
   };
 }
 
@@ -48,6 +51,7 @@ export type Action =
   | { type: "backToOffice" }
   | { type: "pick"; id: RecId }
   | { type: "send" }
+  | { type: "timeout" }
   | { type: "reviewAgain" }
   | { type: "restart" };
 
@@ -83,7 +87,11 @@ export function reduce(state: State, action: Action): State {
     case "send":
       if (state.phase !== "email" || !state.picked) return state;
       return { ...state, phase: "verdict", sent: state.picked };
+    case "timeout":
+      if (!state.officeEntered || !["office", "decision", "email"].includes(state.phase)) return state;
+      return { ...state, phase: "verdict", sent: null, timedOut: true };
     case "reviewAgain":
+      if (state.phase === "verdict" && state.timedOut) return { ...state, phase: "office", picked: null, timedOut: false };
       if (state.phase !== "verdict" || !state.sent || isWin(state.sent)) return state;
       return { ...state, phase: "office", picked: null, sent: null };
     case "restart":
