@@ -15,6 +15,8 @@ const WHO: Record<Speaker, { name: string; role: string; tone: "dark" | "light" 
 };
 const STATION: Record<State["phase"], string> = { intro: "", brief: "مكتب المدير العام", road: "في الطريق", meeting: "مكتب التدريب", office: "مكتبك", verdict: "مكتب المدير العام" };
 const ending = (s: State) => (s.timedOut ? TIMEOUT : s.outcome === "win" ? WIN : LOSS);
+// Temporary testing switch: freeze the deadline while trying every path.
+const TEST_MODE = true;
 
 export default function Game() {
   const [state, raw] = useReducer(reduce, undefined, initialState);
@@ -37,6 +39,7 @@ export default function Game() {
   const [phoneBuzz, setPhoneBuzz] = useState(false);
   useEffect(() => {
     if (!timerOn) { setMessageCount(0); setPhoneOpen(true); return; }
+    if (TEST_MODE) { setLeft(DEADLINE_SECONDS); setLastLeft(DEADLINE_SECONDS); setMessageCount(0); return; }
     const start = Date.now();
     let m1 = false, m2 = false;
     const receive = (n: number) => { setMessageCount(n); setPhoneOpen(true); setPhoneBuzz(true); sfx.chime(); window.setTimeout(() => setPhoneBuzz(false), 450); };
@@ -290,6 +293,7 @@ function Ask({ state, dispatch, back }: { state: State; dispatch: (a: Action) =>
             <motion.div key={q.id} className="g-na" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} dir="ltr"><AlertTriangle /> Data Not Available</motion.div>
           ) : <BarCard key={q.id} m={METRICS[q.shows!]} of={q.id === "respondents"} />)}</div>
           <Claim state={state} dispatch={dispatch} />
+          <div className="g-mail-actions">{back}</div>
         </>
       )}
     </section>
