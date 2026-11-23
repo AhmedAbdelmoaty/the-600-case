@@ -20,6 +20,7 @@
 .g-hud>*{pointer-events:auto}
 .g-hud-tools{display:flex;gap:.5rem}
 .g-hud-tools button{width:2.9rem;height:2.9rem;display:grid;place-items:center;border-radius:.6rem;background:hsl(var(--paper)/.95);color:hsl(var(--ink));box-shadow:0 6px 18px hsl(var(--ink)/.3)}
+.g-hud-tools .g-test-nav-btn{width:auto;height:2.9rem;display:flex;align-items:center;gap:.3rem;background:#f59e0b;color:#000;font-weight:800;border:1px solid #d97706;border-radius:.5rem;padding:.35rem .75rem;font-size:.8rem;white-space:nowrap;box-shadow:0 4px 10px rgb(0 0 0/.2)}
 .g-hud-tools svg{width:1.2rem}
 .g-hud-place{background:hsl(var(--paper)/.96);border-radius:.6rem;padding:.35rem 1.1rem;text-align:center;box-shadow:0 6px 18px hsl(var(--ink)/.3);line-height:1.2}
 .g-hud-place small{display:block;font-size:.62rem;color:hsl(var(--red));font-weight:800;direction:ltr}
@@ -211,6 +212,7 @@
   .g-location-row{grid-template-columns:1fr}
   .g-location{min-height:4.4rem}
   .g-hud-tools button{width:2.6rem;height:2.6rem}
+  .g-hud-tools .g-test-nav-btn{width:auto;height:2.6rem;padding:.3rem .55rem;font-size:.72rem}
   .g-hud-place{padding:.3rem .7rem}
   .g-board{width:100%}
 }

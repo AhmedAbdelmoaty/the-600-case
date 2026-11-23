@@ -15,6 +15,7 @@ const WHO: Record<Speaker, { name: string; role: string; tone: "dark" | "light" 
 };
 
 const STATION: Record<State["phase"], string> = { intro: "", brief: "مكتب المدير العام", road: "ممر الإدارة", meeting: "مكتب التدريب", office: "مكتب التحليل", verdict: "القرار النهائي" };
+const TEST_MODE = true;
 
 const ending = (s: State): Ending => {
   if (s.timedOut) return TIMEOUT;
@@ -46,14 +47,14 @@ export default function Game() {
   }, []);
 
   const timerOn = state.phase === "office" && state.officeEntered;
-  const remaining = timeLeft(elapsed, state.penalty);
+  const remaining = TEST_MODE ? DEADLINE_SECONDS : timeLeft(elapsed, state.penalty);
   useEffect(() => {
-    if (!timerOn) return;
+    if (!timerOn || TEST_MODE) return;
     const id = window.setInterval(() => setElapsed((v) => v + 1), 1000);
     return () => window.clearInterval(id);
   }, [timerOn]);
   useEffect(() => {
-    if (!timerOn) { timeoutSent.current = false; return; }
+    if (!timerOn || TEST_MODE) { timeoutSent.current = false; return; }
     if (remaining < 20 && remaining > 0) tick(remaining < 10);
     if (remaining === 0 && !timeoutSent.current) { timeoutSent.current = true; travel({ type: "timeout" }); }
   }, [remaining, timerOn, travel]);
@@ -67,7 +68,7 @@ export default function Game() {
   return (
     <div className="g600 g-training-eval" dir="rtl">
       <Scene k={scene} />
-      {state.phase !== "intro" && <Hud state={state} muted={muted} remaining={remaining} timerOn={timerOn} onMute={() => setMute((v) => !v)} onRestart={() => travel({ type: "restart" })} />}
+      {state.phase !== "intro" && <Hud state={state} muted={muted} remaining={remaining} timerOn={timerOn} onMute={() => setMute((v) => !v)} onRestart={() => travel({ type: "restart" })} onThink={() => dispatch({ type: "backToThink" })} />}
       {timerOn && messageCount > 0 && <PhoneNotifier count={messageCount} open={phoneOpen} onToggle={() => setPhoneOpen((v) => !v)} />}
       {timerOn && remaining < 15 && <div className="g-urgency-vignette" aria-hidden />}
       <AnimatePresence mode="wait">
@@ -90,9 +91,9 @@ function Scene({ k }: { k: SceneKey }) {
   return <div className={`g-scene scene-${k}`} aria-hidden><motion.picture key={k} initial={{ opacity: 0 }} animate={{ opacity: 1 }}><source media="(max-width:640px)" srcSet={s.p} /><img src={s.l} alt="" /></motion.picture><div className={`g-wash ${k === "cover" ? "cover" : ""}`} /></div>;
 }
 
-function Hud({ state, muted, remaining, timerOn, onMute, onRestart }: { state: State; muted: boolean; remaining: number; timerOn: boolean; onMute: () => void; onRestart: () => void }) {
+function Hud({ state, muted, remaining, timerOn, onMute, onRestart, onThink }: { state: State; muted: boolean; remaining: number; timerOn: boolean; onMute: () => void; onRestart: () => void; onThink: () => void }) {
   const urgency = remaining < 20 ? "red" : remaining < 45 ? "amber" : "calm";
-  return <header className="g-hud"><div className="g-hud-tools"><button aria-label="ابدأ من الأول" onClick={onRestart}><Home /></button><button aria-label={muted ? "تشغيل الصوت" : "كتم الصوت"} onClick={onMute}>{muted ? <VolumeX /> : <Volume2 />}</button></div><div className="g-hud-place"><small>{TITLE}</small><b>{STATION[state.phase]}</b></div>{timerOn ? <div className={`g-timer ${urgency}`} role="timer"><b>{`${String(Math.floor(remaining / 60)).padStart(2, "0")}:${String(remaining % 60).padStart(2, "0")}`}</b><i><em style={{ width: `${(remaining / DEADLINE_SECONDS) * 100}%` }} /></i></div> : <span />}</header>;
+  return <header className="g-hud"><div className="g-hud-tools"><button aria-label="ابدأ من الأول" onClick={onRestart}><Home /></button><button aria-label={muted ? "تشغيل الصوت" : "كتم الصوت"} onClick={onMute}>{muted ? <VolumeX /> : <Volume2 />}</button><button className="g-test-nav-btn" title="الرجوع لخيارات التفكير" onClick={onThink}>🔄 <span>رجوع للتفكير</span></button></div><div className="g-hud-place"><small>{TITLE}</small><b>{STATION[state.phase]}</b></div>{timerOn ? <div className={`g-timer ${urgency}`} role="timer"><b>{`${String(Math.floor(remaining / 60)).padStart(2, "0")}:${String(remaining % 60).padStart(2, "0")}`}</b><i><em style={{ width: `${(remaining / DEADLINE_SECONDS) * 100}%` }} /></i></div> : <span />}</header>;
 }
 
 function Cover({ go }: { go: () => void }) {

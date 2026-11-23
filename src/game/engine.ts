@@ -118,7 +118,15 @@ export function reduce(s: State, a: Action): State {
       if (!inOffice || !s.claim || !s.evidence || s.mismatch) return s;
       return { ...s, view: "email" };
     case "backToThink":
-      return inOffice ? { ...s, ...officeReset } : s;
+      return {
+        ...s,
+        phase: "office",
+        officeEntered: true,
+        penalty: 0,
+        outcome: null,
+        timedOut: false,
+        ...officeReset,
+      };
     case "send": {
       if (!inOffice || s.view !== "email" || !s.claim) return s;
       let outcome: Outcome = "lossData";
