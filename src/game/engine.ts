@@ -1,23 +1,44 @@
-// Pure, deterministic game engine for "The 600 Case" (V2). No rendering here.
-export type Phase = "intro" | "meeting" | "office" | "decision" | "email" | "verdict";
-export type RecId = "expand" | "stop" | "pilot";
-export type Rank = "expert" | "calculated";
+// Pure, deterministic engine for "Training Budget Case" V3 (survey non-response case). No rendering here.
+export type Phase = "intro" | "brief" | "road" | "meeting" | "office" | "verdict";
+export type View = "think" | "guess" | "data" | "ask" | "email";
+export type Path = "data" | "ask";
+export type ClaimId = "aBetter" | "bBetter" | "equal" | "notRep" | "trainer" | "trainees";
+export type EvidenceId = "participants" | "attendance" | "assignments" | "projects" | "satisfaction" | "complaints" | "complaintsRate" | "respondents";
+export type QuestionId = "respondents" | "complaintsOfAll" | "attendance" | "complaintsCount" | "allData";
+export type Outcome = "win" | "loss";
+
+export const DEADLINE_SECONDS = 120;
+export const GUESS_PENALTY = 10;
+export const DATA_PENALTY = 5;
+export const BRIEF_LENGTH = 1;
+export const MEETING_LENGTH = 4;
+
+export const DATA_CLAIMS: ClaimId[] = ["aBetter", "bBetter", "equal", "notRep"];
+export const ASK_CLAIMS: ClaimId[] = ["aBetter", "bBetter", "notRep"];
+export const EVIDENCE: EvidenceId[] = ["participants", "attendance", "assignments", "projects", "satisfaction", "complaints", "complaintsRate", "respondents"];
+/** Which evidence logically supports each claim. Anything else is rejected. */
+export const SUPPORTS: Record<"aBetter" | "bBetter" | "equal" | "notRep", EvidenceId[]> = {
+  aBetter: ["satisfaction", "complaints", "complaintsRate"],
+  bBetter: ["attendance", "projects"],
+  equal: ["participants", "assignments"],
+  notRep: ["respondents"],
+};
 
 export interface State {
   phase: Phase;
   line: number;
-  notebookOpened: boolean;
   officeEntered: boolean;
-  picked: RecId | null;
-  sent: RecId | null;
-  order: RecId[];
+  view: View;
+  path: Path | null;
+  penalty: number;
+  asked: QuestionId[];
+  claim: ClaimId | null;
+  evidence: EvidenceId | null;
+  mismatch: boolean;
+  outcome: Outcome | null;
   timedOut: boolean;
+  order: ClaimId[];
 }
-
-export const DEADLINE_SECONDS = 90;
-export const MEETING_LENGTH = 8;
-export const CHART_FROM_LINE = 2;
-const RECS: RecId[] = ["expand", "stop", "pilot"];
 
 export function shuffle<T>(arr: T[], rng: () => number): T[] {
   const a = [...arr];
@@ -28,82 +49,81 @@ export function shuffle<T>(arr: T[], rng: () => number): T[] {
   return a;
 }
 
+const officeReset = { view: "think" as View, path: null, asked: [], claim: null, evidence: null, mismatch: false };
+
 export function initialState(): State {
-  return {
-    phase: "intro",
-    line: 0,
-    notebookOpened: false,
-    officeEntered: false,
-    picked: null,
-    sent: null,
-    order: RECS,
-    timedOut: false,
-  };
+  return { phase: "intro", line: 0, officeEntered: false, penalty: 0, outcome: null, timedOut: false, order: DATA_CLAIMS, ...officeReset };
 }
 
 export type Action =
   | { type: "start"; rng?: () => number }
   | { type: "next" }
   | { type: "enterOffice" }
-  | { type: "openNotebook" }
-  | { type: "toDecision" }
-  | { type: "composeEmail" }
-  | { type: "backToOffice" }
-  | { type: "pick"; id: RecId }
+  | { type: "think"; to: "guess" | "data" | "ask" }
+  | { type: "guess"; id: "trainer" | "trainees" | "data" }
+  | { type: "ask"; id: QuestionId }
+  | { type: "claim"; id: ClaimId }
+  | { type: "evidence"; id: EvidenceId }
+  | { type: "confirm" }
+  | { type: "backToThink" }
   | { type: "send" }
   | { type: "timeout" }
-  | { type: "reviewAgain" }
+  | { type: "retry" }
   | { type: "restart" };
 
-export const isWin = (id: RecId) => id === "pilot";
+export const isCorrect = (claim: ClaimId | null) => claim === "notRep";
+export const supports = (claim: ClaimId, ev: EvidenceId) => claim in SUPPORTS && SUPPORTS[claim as keyof typeof SUPPORTS].includes(ev);
+export const claimsFor = (s: State) => (s.path === "ask" ? s.order.filter((c) => ASK_CLAIMS.includes(c)) : s.order);
+export const timeLeft = (elapsed: number, penalty: number) => Math.max(0, DEADLINE_SECONDS - elapsed - penalty);
 
-export function rankOf(state: State): Rank | null {
-  if (!state.sent || !isWin(state.sent)) return null;
-  return state.notebookOpened ? "expert" : "calculated";
+function toData(s: State, cost: number): State {
+  return { ...s, view: "data", path: "data", penalty: s.penalty + cost, claim: null, evidence: null, mismatch: false };
 }
 
-export function reduce(state: State, action: Action): State {
-  switch (action.type) {
+export function reduce(s: State, a: Action): State {
+  const inOffice = s.phase === "office" && s.officeEntered;
+  switch (a.type) {
     case "start":
-      if (state.phase !== "intro") return state;
-      return { ...initialState(), phase: "meeting", order: shuffle(RECS, action.rng ?? Math.random) };
+      return s.phase === "intro" ? { ...initialState(), phase: "brief", order: shuffle(DATA_CLAIMS, a.rng ?? Math.random) } : s;
     case "next":
-      if (state.phase !== "meeting") return state;
-      return state.line + 1 < MEETING_LENGTH
-        ? { ...state, line: state.line + 1 }
-        : { ...state, phase: "office" };
-    case "openNotebook":
-      return state.phase === "office" ? { ...state, notebookOpened: true } : state;
+      if (s.phase === "brief") return s.line + 1 < BRIEF_LENGTH ? { ...s, line: s.line + 1 } : { ...s, phase: "road", line: 0 };
+      if (s.phase === "road") return { ...s, phase: "meeting", line: 0 };
+      if (s.phase === "meeting") return s.line + 1 < MEETING_LENGTH ? { ...s, line: s.line + 1 } : { ...s, phase: "office", line: 0 };
+      return s;
     case "enterOffice":
-      return state.phase === "office" ? { ...state, officeEntered: true } : state;
-    case "toDecision":
-      return state.phase === "office" ? { ...state, phase: "decision" } : state;
-    case "composeEmail":
-      return state.phase === "decision" && state.picked ? { ...state, phase: "email" } : state;
-    case "backToOffice":
-      return state.phase === "email" || state.phase === "decision" ? { ...state, phase: "office" } : state;
-    case "pick":
-      return state.phase === "decision" ? { ...state, picked: action.id } : state;
+      return s.phase === "office" ? { ...s, officeEntered: true } : s;
+    case "think":
+      if (!inOffice || s.view !== "think") return s;
+      if (a.to === "data") return toData(s, DATA_PENALTY);
+      return { ...s, view: a.to, path: a.to === "ask" ? "ask" : null };
+    case "guess":
+      if (!inOffice || s.view !== "guess") return s;
+      if (a.id === "data") return toData(s, GUESS_PENALTY);
+      return { ...s, claim: a.id, evidence: null, view: "email" };
+    case "ask":
+      if (!inOffice || s.view !== "ask") return s;
+      if (a.id === "allData") return toData(s, DATA_PENALTY);
+      return s.asked.includes(a.id) ? s : { ...s, asked: [...s.asked, a.id] };
+    case "claim":
+      if (!inOffice || (s.view !== "data" && s.view !== "ask") || !claimsFor(s).includes(a.id)) return s;
+      return { ...s, claim: a.id, evidence: null, mismatch: false };
+    case "evidence":
+      if (!inOffice || !s.claim || (s.view !== "data" && s.view !== "ask")) return s;
+      return { ...s, evidence: a.id, mismatch: !supports(s.claim, a.id) };
+    case "confirm":
+      if (!inOffice || !s.claim || !s.evidence || s.mismatch) return s;
+      return { ...s, view: "email" };
+    case "backToThink":
+      return inOffice ? { ...s, ...officeReset } : s;
     case "send":
-      if (state.phase !== "email" || !state.picked) return state;
-      return { ...state, phase: "verdict", sent: state.picked };
+      if (!inOffice || s.view !== "email" || !s.claim) return s;
+      return { ...s, phase: "verdict", outcome: isCorrect(s.claim) ? "win" : "loss" };
     case "timeout":
-      if (!state.officeEntered || !["office", "decision", "email"].includes(state.phase)) return state;
-      return { ...state, phase: "verdict", sent: null, timedOut: true };
-    case "reviewAgain":
-      if (state.phase === "verdict" && state.timedOut) return { ...state, phase: "office", picked: null, timedOut: false };
-      if (state.phase !== "verdict" || !state.sent || isWin(state.sent)) return state;
-      return { ...state, phase: "office", picked: null, sent: null };
+      return inOffice ? { ...s, phase: "verdict", outcome: null, timedOut: true } : s;
+    case "retry":
+      if (s.phase !== "verdict" || s.outcome === "win") return s;
+      return { ...s, phase: "office", officeEntered: false, penalty: 0, outcome: null, timedOut: false, ...officeReset };
     case "restart":
       return initialState();
   }
 }
-
-export const STATION_OF: Record<Phase, number> = {
-  intro: 1,
-  meeting: 1,
-  office: 2,
-  decision: 3,
-  email: 3,
-  verdict: 4,
-};

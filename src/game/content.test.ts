@@ -1,15 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { MEETING, NOTEBOOK, RECS } from "./content";
+import { BRIEF, MEETING, METRICS, QUESTIONS, ROAD } from "./content";
+import { BRIEF_LENGTH, MEETING_LENGTH } from "./engine";
 
-describe("V2 script", () => {
-  it("has the 8-line meeting and 5 meeting-note lines", () => {
-    expect(MEETING).toHaveLength(8);
-    expect(NOTEBOOK).toHaveLength(5);
+describe("script", () => {
+  it("dialogue lengths match the engine", () => {
+    expect(BRIEF).toHaveLength(BRIEF_LENGTH);
+    expect(MEETING).toHaveLength(MEETING_LENGTH);
   });
-  it("never names the hidden explanation in the notebook", () => {
-    for (const n of NOTEBOOK) expect(n).not.toMatch(/سبب|تحيّز|يعني إن|دليل/);
+  it("uses the agreed numbers", () => {
+    expect([METRICS.respondents.a, METRICS.respondents.b]).toEqual([30, 45]);
+    expect([METRICS.attendance.a, METRICS.attendance.b]).toEqual([75, 95]);
+    expect([METRICS.satisfaction.a, METRICS.satisfaction.b]).toEqual([90, 80]);
   });
-  it("offers exactly the three agreed recommendations", () => {
-    expect(Object.keys(RECS).sort()).toEqual(["expand", "pilot", "stop"]);
+  it("never explains the missing respondents before the choice", () => {
+    const pre = [...BRIEF, ...MEETING, ROAD].map((l) => l.text).join(" ") + QUESTIONS.map((q) => q.text).join(" ");
+    for (const w of ["لم يشارك", "20 موظف", "تحيز", "لا يمثل"]) expect(pre).not.toContain(w);
   });
 });
