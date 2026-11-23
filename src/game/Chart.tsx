@@ -2,6 +2,29 @@ import { motion } from "framer-motion";
 import { CheckCircle, FileText, X } from "lucide-react";
 import type { Metric } from "./content";
 
+export function InlineReportCard({ metric }: { metric: Metric }) {
+  const hA = Math.max(15, Math.round((metric.a / metric.max) * 100));
+  const hB = Math.max(15, Math.round((metric.b / metric.max) * 100));
+  const fmt = (v: number) => (metric.unit ? `${v}${metric.unit}` : `${v}`);
+  return (
+    <motion.article className="g-inline-report" dir="rtl" initial={{ y: 18, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: .28, ease: "easeOut" }}>
+      <header className="g-inline-head">
+        <div className="g-inline-tags"><span className={`g-source-tag tag-${metric.source.toLowerCase()}`}>{metric.source}</span><span className="g-badge-official"><FileText size={12} /> تقرير معتمد</span></div>
+        <h3 dir="ltr" className="g-metric-en">{metric.label}</h3>
+        <p className="g-metric-ar">{metric.labelAr}</p>
+      </header>
+      <div className="g-inline-chart" dir="ltr">
+        <div className="g-report-grid-lines"><span /><span /><span /></div>
+        <div className="g-report-columns">
+          <div className="g-report-col col-a"><span className="g-report-val">{fmt(metric.a)}</span><motion.div className="g-report-bar bar-a" initial={{ height: 0 }} animate={{ height: `${hA}%` }} transition={{ duration: .45, ease: "easeOut" }} /><span className="g-report-col-label">Group A</span></div>
+          <div className="g-report-col col-b"><span className="g-report-val">{fmt(metric.b)}</span><motion.div className="g-report-bar bar-b" initial={{ height: 0 }} animate={{ height: `${hB}%` }} transition={{ duration: .45, delay: .1, ease: "easeOut" }} /><span className="g-report-col-label">Group B</span></div>
+        </div>
+      </div>
+      <footer className="g-inline-foot"><div className="g-report-stamp mini"><CheckCircle size={13} /><span>معتمد</span></div><p className="g-inline-note">{metric.note}</p></footer>
+    </motion.article>
+  );
+}
+
 export function OfficialReportModal({ metric, onClose }: { metric: Metric; onClose: () => void }) {
   const hA = Math.max(12, Math.round((metric.a / metric.max) * 100));
   const hB = Math.max(12, Math.round((metric.b / metric.max) * 100));
@@ -33,7 +56,7 @@ export function MiniEvidenceChip({ metric, selected, onClick }: { metric: Metric
   const fmt = (v: number) => (metric.unit ? `${v}${metric.unit}` : `${v}`);
   return (
     <button className={`g-mini-chip ${selected ? "is-selected" : ""}`} onClick={onClick} dir="rtl">
-      <div className="g-mini-top"><span className={`g-source-tag tag-${metric.source.toLowerCase()}`}>{metric.source}</span><b>{metric.labelAr}</b></div>
+      <div className="g-mini-top"><span className={`g-source-tag tag-${metric.source.toLowerCase()}`}>{metric.source}</span><b dir="ltr" className="g-chip-title-en">{metric.label}</b><small className="g-chip-title-ar">{metric.labelAr}</small></div>
       <div className="g-mini-nums" dir="ltr"><span className="val-a">A: {fmt(metric.a)}</span><span className="val-sep">|</span><span className="val-b">B: {fmt(metric.b)}</span></div>
     </button>
   );

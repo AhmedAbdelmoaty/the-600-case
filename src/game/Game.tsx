@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, BarChart3, ChevronDown, ChevronLeft, DoorOpen, FileQuestion, Home, Mail, RotateCcw, Send, Smartphone, Volume2, VolumeX } from "lucide-react";
-import { DEADLINE_SECONDS, claimsFor, initialState, reduce, timeLeft, type Action, type ClaimId, type State } from "./engine";
-import { BRIEF, CLAIMS, EMAIL_BODIES, GUESSES, LOSS_GUESS, LOSS_SUPERFICIAL, MEETING, METRICS, METRICS_LIST, MISMATCH, QUESTIONS, SEIF_MESSAGES, SUBTITLE_AR, THOUGHTS, TIMEOUT, TITLE, WIN, type Ending, type Line, type Metric, type Speaker } from "./content";
+import { ArrowLeft, ArrowRight, ChevronDown, ChevronLeft, DoorOpen, Home, Mail, RotateCcw, Send, Smartphone, Volume2, VolumeX } from "lucide-react";
+import { DEADLINE_SECONDS, claimsFor, initialState, reduce, timeLeft, type Action, type State } from "./engine";
+import { BRIEF, CLAIM_LABELS, EMAIL_BODIES, GUESSES, LOSS_GUESS, LOSS_SUPERFICIAL, MEETING, METRICS, METRICS_LIST, MISMATCH, QUESTIONS, SEIF_MESSAGES, SUBTITLE_AR, TAKEAWAYS, THOUGHTS, TIMEOUT, TITLE, WIN, type Ending, type Line, type Metric, type Speaker } from "./content";
 import { PORTRAITS, SCENES, type SceneKey } from "./assets";
-import { MiniEvidenceChip, OfficialReportModal } from "./Chart";
+import { InlineReportCard, MiniEvidenceChip, OfficialReportModal } from "./Chart";
 import { setMuted, sfx, startBgm, tick, whoosh } from "./audio";
 import "./game.css";
 
@@ -96,7 +96,7 @@ function Hud({ state, muted, remaining, timerOn, onMute, onRestart }: { state: S
 }
 
 function Cover({ go }: { go: () => void }) {
-  return <section className="g-cover"><motion.h1 dir="ltr" initial={{ y: 22, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>{TITLE}</motion.h1><motion.h2 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .2 }}>{SUBTITLE_AR}</motion.h2><motion.button className="g-btn primary big" onClick={go} initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: .4 }}>ابدأ القضية</motion.button><small className="g-role">دورك: محلل الموارد البشرية</small></section>;
+  return <section className="g-cover"><motion.h1 dir="ltr" initial={{ y: 22, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>{TITLE}</motion.h1><motion.h2 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .2 }}>{SUBTITLE_AR}</motion.h2><motion.button className="g-btn primary big" onClick={go} initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: .4 }}>ابدأ الآن</motion.button><small className="g-role">دورك: محلل الموارد البشرية</small></section>;
 }
 
 function Road({ next }: { next: () => void }) {
@@ -123,17 +123,17 @@ function Office({ state, dispatch, onSend }: { state: State; dispatch: (a: Actio
   const [step, setStep] = useState(0);
   const [dataComplete, setDataComplete] = useState(false);
   if (!state.officeEntered) return <div className="g-stage center"><section className="g-arrive"><small>بعد مقابلة طارق</small><h2>مكتب التحليل مستنيك</h2><p>قدامك دقيقتين تختار طريق التحليل وتبعت التوصية.</p><button className="g-btn primary big" onClick={() => { sfx.door(); dispatch({ type: "enterOffice" }); }}>ادخل المكتب</button></section></div>;
-  return <div className="g-stage g-office-stage"><section className="g-workspace">
+  return <div className="g-stage g-office-stage"><motion.section key={state.view} className={`g-office-view g-office-${state.view}`} initial={{ y: 18, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: .24, ease: "easeOut" }}>
     {state.view === "think" && <Think dispatch={dispatch} />}
     {state.view === "guess" && <Guess dispatch={dispatch} />}
     {state.view === "data" && <DataView state={state} dispatch={dispatch} step={step} setStep={setStep} complete={dataComplete} setComplete={setDataComplete} openReport={setReport} />}
-    {state.view === "ask" && <AskView state={state} dispatch={dispatch} openReport={setReport} />}
+    {state.view === "ask" && <AskView state={state} dispatch={dispatch} />}
     {state.view === "email" && <Email state={state} dispatch={dispatch} onSend={onSend} />}
-  </section><AnimatePresence>{report && <OfficialReportModal metric={report} onClose={() => setReport(null)} />}</AnimatePresence></div>;
+  </motion.section><AnimatePresence>{report && <OfficialReportModal metric={report} onClose={() => setReport(null)} />}</AnimatePresence></div>;
 }
 
 function Think({ dispatch }: { dispatch: (a: Action) => void }) {
-  return <><header className="g-work-head"><small>لحظة التفكير</small><h2>هتبدأ منين؟</h2><p>كل طريق له تكلفة في الوقت، واختيار البداية جزء من التحليل.</p></header><div className="g-path-grid">{(["guess", "data", "ask"] as const).map((to, i) => <button key={to} className={`g-path-card path-${to}`} onClick={() => { sfx.tap(); dispatch({ type: "think", to }); }}><span>{i === 0 ? "⚡" : i === 1 ? "📊" : "❓"}</span><b>{THOUGHTS[to]}</b><small>{to === "guess" ? "تخمين سريع" : to === "data" ? "خصم ٥ ثوانٍ" : "سؤال واحد ذكي"}</small></button>)}</div></>;
+  return <><header className="g-work-head"><small>لحظة التفكير</small><h2>هتبدأ منين؟</h2></header><div className="g-path-grid">{(["guess", "data", "ask"] as const).map((to, i) => <motion.button key={to} className={`g-path-card path-${to}`} onClick={() => { sfx.tap(); dispatch({ type: "think", to }); }} initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: i * .07, duration: .24 }}><span>{i === 0 ? "⚡" : i === 1 ? "📊" : "❓"}</span><b>{THOUGHTS[to]}</b></motion.button>)}</div></>;
 }
 
 function Guess({ dispatch }: { dispatch: (a: Action) => void }) {
@@ -142,22 +142,22 @@ function Guess({ dispatch }: { dispatch: (a: Action) => void }) {
 
 function DataView({ state, dispatch, step, setStep, complete, setComplete, openReport }: { state: State; dispatch: (a: Action) => void; step: number; setStep: (n: number) => void; complete: boolean; setComplete: (v: boolean) => void; openReport: (m: Metric) => void }) {
   const metric = METRICS_LIST[step]!;
-  if (!complete) return <><header className="g-work-head"><small>كشف البيانات التدريجي</small><h2>تقرير {step + 1} من 8</h2></header><section className="g-progressive-card"><span className={`g-source-tag tag-${metric.source.toLowerCase()}`}>{metric.source}</span><h3>{metric.labelAr}</h3><div className="g-ab-numbers" dir="ltr"><b>A: {metric.a}{metric.unit}</b><i /><b>B: {metric.b}{metric.unit}</b></div><p>{metric.note}</p><button className="g-btn secondary" onClick={() => openReport(metric)}><BarChart3 /> افتح التقرير الرسمي</button></section><div className="g-step-actions"><button className="g-btn secondary" disabled={step === 0} onClick={() => setStep(step - 1)}><ArrowRight /> السابق</button><button className="g-btn primary" onClick={() => step < 7 ? setStep(step + 1) : setComplete(true)}>{step < 7 ? "التقرير التالي" : "افتح لوحة الأدلة"}<ArrowLeft /></button></div><button className="g-btn quiet" onClick={() => dispatch({ type: "backToThink" })}>ارجع للبداية</button></>;
-  return <><header className="g-work-head compact"><small>Evidence Dock</small><h2>اختار استنتاجًا ثم الدليل اللي يسنده</h2></header><div className="g-evidence-dock">{METRICS_LIST.map((m) => <MiniEvidenceChip key={m.id} metric={m} selected={state.evidence === m.id} onClick={() => { openReport(m); if (state.claim) dispatch({ type: "evidence", id: m.id }); }} />)}</div><ClaimPicker state={state} dispatch={dispatch} /><button className="g-btn quiet" onClick={() => setComplete(false)}>راجع التقارير بالتتابع</button></>;
+  if (!complete) return <><header className="g-work-head"><small>كشف البيانات التدريجي</small><h2>تقرير {step + 1} من 8</h2></header><InlineReportCard key={metric.id} metric={metric} /><div className="g-step-actions"><button className="g-btn secondary" disabled={step === 0} onClick={() => setStep(step - 1)}><ArrowRight /> السابق</button><button className="g-btn primary" onClick={() => step < 7 ? setStep(step + 1) : setComplete(true)}>{step < 7 ? "التقرير التالي" : "افتح لوحة الأدلة"}<ArrowLeft /></button></div><button className="g-btn quiet" onClick={() => dispatch({ type: "backToThink" })}>ارجع للبداية</button></>;
+  return <><header className="g-work-head compact"><small>Evidence Dock</small><h2>اختار استنتاجًا ثم الدليل اللي يسنده</h2></header><div className="g-evidence-dock">{METRICS_LIST.map((m) => <MiniEvidenceChip key={m.id} metric={m} selected={state.evidence === m.id} onClick={() => { if (state.claim) dispatch({ type: "evidence", id: m.id }); }} />)}</div>{state.evidence && <button className="g-btn secondary g-expand-report" onClick={() => openReport(METRICS[state.evidence!])}>عرض الدليل مكبّرًا</button>}<ClaimPicker state={state} dispatch={dispatch} /><button className="g-btn quiet" onClick={() => setComplete(false)}>راجع التقارير بالتتابع</button></>;
 }
 
-function AskView({ state, dispatch, openReport }: { state: State; dispatch: (a: Action) => void; openReport: (m: Metric) => void }) {
+function AskView({ state, dispatch }: { state: State; dispatch: (a: Action) => void }) {
   const asked = QUESTIONS.find((q) => q.id === state.asked[0]);
   if (!asked) return <><header className="g-work-head"><small>اسأل صح</small><h2>عندك سؤال واحد.. اختاره بعناية</h2></header><div className="g-choice-list">{QUESTIONS.map((q) => <button key={q.id} onClick={() => { sfx.tap(); dispatch({ type: "ask", id: q.id }); }}>{q.text}</button>)}</div><button className="g-btn quiet" onClick={() => dispatch({ type: "backToThink" })}>ارجع للبداية</button></>;
   if (asked.na) return <section className="g-na-card"><span>غير متاح</span><h2>Data Not Available</h2><p>نسبة الشكاوى المسجلة خاصة باللي ملوا الاستبيان فقط، مفيش أي بيانات مسجلة لنسبة الشكاوى من إجمالي الحضور!</p><button className="g-btn primary" onClick={() => dispatch({ type: "resetAsk" })}>اختر سؤالاً آخر</button></section>;
   if (!asked.shows) return null;
   const metric = METRICS[asked.shows];
-  return <><header className="g-work-head compact"><small>إجابة السؤال</small><h2>{asked.text}</h2></header><MiniEvidenceChip metric={metric} selected={state.evidence === metric.id} onClick={() => openReport(metric)} /><ClaimPicker state={state} dispatch={dispatch} boundEvidence={metric.id} /></>;
+  return <><header className="g-work-head compact"><small>إجابة السؤال</small><h2>{asked.text}</h2></header><InlineReportCard metric={metric} /><ClaimPicker state={state} dispatch={dispatch} boundEvidence={metric.id} /></>;
 }
 
 function ClaimPicker({ state, dispatch, boundEvidence }: { state: State; dispatch: (a: Action) => void; boundEvidence?: Metric["id"] }) {
   const claims = claimsFor(state);
-  return <section className="g-claim-zone"><h3>إيه استنتاجك؟</h3><div className="g-claims">{claims.map((id) => <button key={id} className={state.claim === id ? "is-selected" : ""} onClick={() => { dispatch({ type: "claim", id }); if (boundEvidence) dispatch({ type: "evidence", id: boundEvidence }); }}>{CLAIMS[id]}</button>)}</div>{state.mismatch && <p className="g-mismatch">{MISMATCH}</p>}<button className="g-btn primary big" disabled={!state.claim || !state.evidence || state.mismatch} onClick={() => dispatch({ type: "confirm" })}><Mail /> اكتب التوصية</button></section>;
+  return <section className="g-claim-zone"><h3>إيه استنتاجك؟</h3><div className="g-claims">{claims.map((id) => <button key={id} className={state.claim === id ? "is-selected" : ""} onClick={() => { dispatch({ type: "claim", id }); if (boundEvidence) dispatch({ type: "evidence", id: boundEvidence }); }}><b>{CLAIM_LABELS[id]}</b></button>)}</div>{state.mismatch && <p className="g-mismatch">{MISMATCH}</p>}<button className="g-btn primary big" disabled={!state.claim || !state.evidence || state.mismatch} onClick={() => dispatch({ type: "confirm" })}><Mail /> اكتب التوصية</button></section>;
 }
 
 function Email({ state, dispatch, onSend }: { state: State; dispatch: (a: Action) => void; onSend: () => void }) {
@@ -168,8 +168,27 @@ function Email({ state, dispatch, onSend }: { state: State; dispatch: (a: Action
 
 function Verdict({ state, dispatch, travel }: { state: State; dispatch: (a: Action) => void; travel: (a: Action) => void }) {
   const result = ending(state);
-  const [showResult, setShowResult] = useState(false);
-  if (!showResult) return <Dialogue line={result.lines[0]!} index={0} total={1} nextLabel="شوف النتيجة" onNext={() => { state.outcome === "win" ? sfx.win() : sfx.lose(); setShowResult(true); }} />;
   const won = state.outcome === "win";
-  return <div className="g-stage center scroll"><motion.section className={`g-ending-card ${won ? "is-win" : "is-loss"}`} initial={{ scale: .9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}><div className="g-ending-stamp">{result.stamp}</div><span className="g-ending-icon">{won ? "🏆" : state.timedOut ? "⏳" : state.outcome === "lossGuess" ? "⚡" : "📉"}</span><h2>{result.title}</h2><p>{result.desc}</p><div className="g-ending-actions">{!won && <button className="g-btn primary" onClick={() => dispatch({ type: "retry" })}>حاول تاني</button>}<button className="g-btn secondary" onClick={() => travel({ type: "restart" })}><RotateCcw /> ابدأ من الأول</button></div></motion.section></div>;
+  const [stage, setStage] = useState<"talk" | "stamp" | "result">("talk");
+  const finishDialogue = () => {
+    setStage("stamp");
+    sfx.stamp();
+    window.setTimeout(() => {
+      setStage("result");
+      if (won) sfx.win();
+      else sfx.lose();
+    }, 1400);
+  };
+  if (stage === "talk") return <Dialogue line={result.lines[0]!} index={0} total={1} nextLabel="شوف النتيجة" onNext={finishDialogue} />;
+  if (stage === "stamp") return <motion.div className="g-stage center" animate={{ x: [0, -7, 7, -5, 5, 0], y: [0, 4, -4, 2, 0] }} transition={{ delay: .2, duration: .4 }}><motion.div className={`g-stamp ${won ? "good" : "bad"}`} initial={{ scale: 3.5, rotate: -25, opacity: 0 }} animate={{ scale: 1, rotate: -10, opacity: 1 }} transition={{ type: "spring", damping: 10, stiffness: 220 }}>{result.stamp}</motion.div></motion.div>;
+  const confetti = won ? Array.from({ length: 34 }, (_, n) => ({ n, x: (n * 37) % 100, d: 2.6 + (n % 5) * .45, delay: (n % 7) * .16, r: (n * 53) % 360, c: n % 3 })) : [];
+  const takeaways = won ? TAKEAWAYS.win : TAKEAWAYS.loss;
+  return <div className="g-stage center scroll">
+    {confetti.map((p) => <motion.i key={p.n} className={`g-confetti c${p.c}`} style={{ left: `${p.x}%` }} initial={{ y: -40, rotate: p.r, opacity: 0 }} animate={{ y: "105vh", rotate: p.r + 540, opacity: [0, 1, 1, 0] }} transition={{ duration: p.d, delay: p.delay, ease: "easeIn" }} aria-hidden />)}
+    <motion.section className={`g-results ${won ? "is-win" : "is-loss"}`} initial={{ opacity: 0, scale: .95 }} animate={{ opacity: 1, scale: 1 }}>
+      <div className="g-res-main"><div className="g-status">{result.stamp}</div><div className="g-trophy-wrap">{won && <span className="g-rays" aria-hidden />}<div className="g-trophy">{won ? "🏆" : state.timedOut ? "⏳" : "📉"}</div></div><h2>«{result.title}»</h2><p className="g-rank-desc">{result.desc}</p></div>
+      <div className="g-takeaways"><h3>الخلاصة التحليلية</h3>{takeaways.map((t, idx) => <motion.article key={t.q} initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .2 + idx * .15 }}><strong>{t.q}</strong><p>{t.a}</p></motion.article>)}</div>
+      <div className="g-result-actions">{!won && <button className="g-btn primary big" onClick={() => dispatch({ type: "retry" })}>حاول تاني</button>}<button className="g-btn secondary big" onClick={() => travel({ type: "restart" })}><RotateCcw /> ابدأ من الأول</button></div>
+    </motion.section>
+  </div>;
 }

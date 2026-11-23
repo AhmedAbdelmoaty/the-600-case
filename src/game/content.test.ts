@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BRIEF, MEETING, METRICS, METRICS_LIST, QUESTIONS, SEIF_MESSAGES } from "./content";
+import { BRIEF, CLAIM_LABELS, EMAIL_BODIES, MEETING, METRICS, METRICS_LIST, QUESTIONS, SEIF_MESSAGES, TAKEAWAYS } from "./content";
 import { BRIEF_LENGTH, EVIDENCE, MEETING_LENGTH } from "./engine";
 
 describe("Training Evaluation content", () => {
@@ -20,5 +20,13 @@ describe("Training Evaluation content", () => {
   it("marks unavailable question and has two Seif nudges", () => {
     expect(QUESTIONS.find((q) => q.id === "complaintsOfAll")?.na).toBe(true);
     expect(SEIF_MESSAGES).toHaveLength(2);
+  });
+  it("keeps compact claim labels separate from full email copy", () => {
+    expect(CLAIM_LABELS.notRep.length).toBeLessThan(EMAIL_BODIES.notRep.length);
+    expect(EMAIL_BODIES.notRep).toContain("Survivorship Bias");
+  });
+  it("provides three takeaways for win and loss", () => {
+    expect(TAKEAWAYS.win).toHaveLength(3);
+    expect(TAKEAWAYS.loss).toHaveLength(3);
   });
 });
