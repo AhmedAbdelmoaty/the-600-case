@@ -45,6 +45,10 @@ describe("Training Budget Case engine", () => {
     expect(claimsFor(s)).toHaveLength(3);
     expect(claimsFor(s)).not.toContain("equal");
   });
+  it("the ask path allows only one question", () => {
+    const s = run([...office, { type: "think", to: "ask" }, { type: "ask", id: "attendance" }, { type: "ask", id: "respondents" }]);
+    expect(s.asked).toEqual(["attendance"]);
+  });
   it("deadline is 120 seconds minus penalties, and timeout ends the game", () => {
     expect(timeLeft(30, 15)).toBe(75);
     expect(run([...office, { type: "timeout" }]).timedOut).toBe(true);

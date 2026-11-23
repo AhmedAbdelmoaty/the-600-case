@@ -103,7 +103,7 @@ export function reduce(s: State, a: Action): State {
     case "ask":
       if (!inOffice || s.view !== "ask") return s;
       if (a.id === "allData") return toData(s, DATA_PENALTY);
-      return s.asked.includes(a.id) ? s : { ...s, asked: [...s.asked, a.id] };
+      return s.asked.length ? s : { ...s, asked: [a.id] };
     case "claim":
       if (!inOffice || (s.view !== "data" && s.view !== "ask") || !claimsFor(s).includes(a.id)) return s;
       return { ...s, claim: a.id, evidence: null, mismatch: false };

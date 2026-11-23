@@ -271,31 +271,25 @@ function Office({ state, dispatch, travel }: { state: State; dispatch: (a: Actio
 }
 
 function Ask({ state, dispatch, back }: { state: State; dispatch: (a: Action) => void; back: React.ReactNode }) {
-  const [deciding, setDeciding] = useState(false);
-  const last = state.asked[state.asked.length - 1];
+  const deciding = state.asked.length > 0;
   return (
     <section className="g-panel wide">
       <small>💭 {THOUGHTS.ask}</small><h2>{deciding ? "قرارك إيه؟" : "تسأل عن إيه؟"}</h2>
       {!deciding ? (
         <>
           <div className="g-recs">{QUESTIONS.map((q) => (
-            <button key={q.id} className={`g-rec ${state.asked.includes(q.id) ? "on" : ""}`} onClick={() => { sfx.paper(); dispatch({ type: "ask", id: q.id }); }}><i aria-hidden />{q.text}</button>
+            <button key={q.id} className="g-rec" onClick={() => { sfx.paper(); dispatch({ type: "ask", id: q.id }); }}><i aria-hidden />{q.text}</button>
           ))}</div>
-          <div className="g-answers">
-            {QUESTIONS.filter((q) => state.asked.includes(q.id)).map((q) => q.na ? (
-              <motion.div key={q.id} className="g-na" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} dir="ltr"><AlertTriangle /> Data Not Available</motion.div>
-            ) : <BarCard key={q.id} m={METRICS[q.shows!]} of={q.id === "respondents"} delay={q.id === last ? 0 : 0} />)}
-          </div>
           <div className="g-mail-actions">
-            <button className="g-btn primary big" disabled={!state.asked.length} onClick={() => { sfx.tap(); setDeciding(true); }}>خلاص، هاخد القرار</button>
             {back}
           </div>
         </>
       ) : (
         <>
-          <div className="g-answers">{QUESTIONS.filter((q) => state.asked.includes(q.id) && !q.na).map((q) => <BarCard key={q.id} m={METRICS[q.shows!]} of={q.id === "respondents"} />)}</div>
+          <div className="g-answers">{QUESTIONS.filter((q) => state.asked.includes(q.id)).map((q) => q.na ? (
+            <motion.div key={q.id} className="g-na" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} dir="ltr"><AlertTriangle /> Data Not Available</motion.div>
+          ) : <BarCard key={q.id} m={METRICS[q.shows!]} of={q.id === "respondents"} />)}</div>
           <Claim state={state} dispatch={dispatch} />
-          <div className="g-mail-actions"><button className="g-btn secondary" onClick={() => setDeciding(false)}>ارجع للأسئلة</button></div>
         </>
       )}
     </section>
