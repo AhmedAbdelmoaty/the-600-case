@@ -15,5 +15,6 @@ export type SceneKey = keyof typeof SCENES;
 export const PORTRAITS = {
   tarek: `${ART}tarek.webp`,
   sherif: `${ART}sherif.webp`,
+  seif: `${ART}sherif.webp`,
   player: `${ART}player.webp`,
 } as const;

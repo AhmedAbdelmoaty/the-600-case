@@ -4,16 +4,16 @@ import Game from "@/game/Game";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Training Budget Case" },
+      { title: "Training Evaluation" },
       {
         name: "description",
         content:
-          "لعبة قرار: تقرير تدريب على مكتب المدير التنفيذي… هل العلاقة بين التدريب والأداء تكفي لزيادة الميزانية؟",
+          "لعبة تحليل قرار: مجموعتان أخدوا نفس الكورس، لكن هل التقييم وحده كفاية عشان نحكم؟",
       },
-      { property: "og:title", content: "Training Budget Case" },
+      { property: "og:title", content: "Training Evaluation" },
       {
         property: "og:description",
-        content: "راجع الأدلة وقرّر قبل ما المدير يمضي على زيادة ميزانية التدريب.",
+        content: "اسأل صح، راجع العينة، وابعت توصيتك قبل الاجتماع.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

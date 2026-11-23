@@ -1,19 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { BRIEF, MEETING, METRICS, QUESTIONS, ROAD } from "./content";
-import { BRIEF_LENGTH, MEETING_LENGTH } from "./engine";
+import { BRIEF, MEETING, METRICS, METRICS_LIST, QUESTIONS, SEIF_MESSAGES } from "./content";
+import { BRIEF_LENGTH, EVIDENCE, MEETING_LENGTH } from "./engine";
 
-describe("script", () => {
+describe("Training Evaluation content", () => {
   it("dialogue lengths match the engine", () => {
     expect(BRIEF).toHaveLength(BRIEF_LENGTH);
     expect(MEETING).toHaveLength(MEETING_LENGTH);
   });
-  it("uses the agreed numbers", () => {
+  it("contains all eight metrics in progressive order", () => {
+    expect(METRICS_LIST.map((m) => m.id)).toEqual(["participants", "complaintsRate", "complaints", "satisfaction", "attendance", "assignments", "projects", "respondents"]);
+    expect(Object.keys(METRICS).sort()).toEqual([...EVIDENCE].sort());
+  });
+  it("uses the agreed values", () => {
+    expect([METRICS.participants.a, METRICS.participants.b]).toEqual([50, 50]);
     expect([METRICS.respondents.a, METRICS.respondents.b]).toEqual([30, 45]);
     expect([METRICS.attendance.a, METRICS.attendance.b]).toEqual([75, 95]);
     expect([METRICS.satisfaction.a, METRICS.satisfaction.b]).toEqual([90, 80]);
   });
-  it("never explains the missing respondents before the choice", () => {
-    const pre = [...BRIEF, ...MEETING, ROAD].map((l) => l.text).join(" ") + QUESTIONS.map((q) => q.text).join(" ");
-    for (const w of ["لم يشارك", "20 موظف", "تحيز", "لا يمثل"]) expect(pre).not.toContain(w);
+  it("marks unavailable question and has two Seif nudges", () => {
+    expect(QUESTIONS.find((q) => q.id === "complaintsOfAll")?.na).toBe(true);
+    expect(SEIF_MESSAGES).toHaveLength(2);
   });
 });
