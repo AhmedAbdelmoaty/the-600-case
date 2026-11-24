@@ -34,3 +34,4 @@ use the editor.
 
 - Full-data entry uses an engine preparation state and a real-time UI countdown; elapsed time alone accounts for loading so deadline time is never deducted twice.
 - Evidence selection precedes conclusions; support mapping selects recommendation copy, while only final submission evaluates win/loss.
+- Sayes parking payment lives in engine state; the pre-send sayes popup is UI-only and shows once per run, so it never changes win/loss rules.

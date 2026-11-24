@@ -109,3 +109,20 @@ describe("Training Evaluation engine", () => {
     expect(run([...office, { type: "timeout" }]).timedOut).toBe(true);
   });
 });
+
+describe("sayes payment", () => {
+  it("records the parking payment once, only on the road", async () => {
+    const { reduce, initialState } = await import("./engine");
+    let s = { ...initialState(), phase: "road" as const };
+    s = reduce(s, { type: "paySayes", pay: "ten" });
+    expect(s.sayes).toBe("ten");
+    expect(reduce(s, { type: "paySayes", pay: "fifty" }).sayes).toBe("ten");
+    expect(reduce(initialState(), { type: "paySayes", pay: "ten" }).sayes).toBeNull();
+  });
+  it("topping up to 50 works only on the recommendation screen", async () => {
+    const { reduce, initialState } = await import("./engine");
+    const s = { ...initialState(), phase: "office" as const, officeEntered: true, view: "email" as const, sayes: "later" as const };
+    expect(reduce(s, { type: "sayesFifty" }).sayes).toBe("fifty");
+    expect(reduce({ ...s, view: "data" }, { type: "sayesFifty" }).sayes).toBe("later");
+  });
+});

@@ -379,3 +379,25 @@
 .g-dash-hit{all:unset;display:block;box-sizing:border-box;width:100%;padding:.35rem;padding-bottom:.25rem;cursor:pointer}
 .g-dash-chart.is-selected{border-color:#2563eb;background:#eff6ff;box-shadow:0 0 0 2px #93c5fd}
 .g-dash-zoom{position:absolute;bottom:.2rem;right:.2rem;width:1.4rem;height:1.4rem;border-radius:.3rem;border:1px solid #d1d5db;background:#fff;font-size:.7rem;cursor:pointer}
+
+.g-sayes-line .g-portrait{width:6.2rem;height:6.2rem;background:hsl(var(--ivory))}
+.g-sayes-line .g-portrait img{object-fit:contain;object-position:center bottom}
+.g-sayes-text{font-size:1.05rem;line-height:1.75;margin:.55rem 0;font-weight:700}
+.g-sayes-actions{display:flex;flex-wrap:wrap;gap:.5rem}
+.g-sayes-choices{display:flex;flex-direction:column;gap:.5rem;width:100%}
+.g-sayes-choices .g-btn{width:100%;justify-content:center}
+.g-sayes-choices .g-btn.secondary{background:hsl(var(--paper));color:hsl(var(--ink))}
+.g-scene.scene-drive img{animation:g-road-shake .5s ease-in-out infinite alternate}
+@keyframes g-road-shake{from{transform:scale(1.04) translate(0,0)}to{transform:scale(1.04) translate(1px,2px)}}
+@keyframes g-bump{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.g-sayes-pop-wrap{position:fixed;inset:0;z-index:80;background:hsl(var(--ink)/.45);display:flex;align-items:flex-end;justify-content:center;padding:.75rem}
+.g-sayes-pop{width:min(100%,34rem);display:flex;align-items:flex-end;gap:.4rem}
+.g-sayes-avatar{width:8.5rem;flex-shrink:0;filter:drop-shadow(0 10px 18px hsl(var(--ink)/.5))}
+.g-sayes-avatar img{width:100%;display:block}
+.g-sayes-bubble-col{flex:1;display:flex;flex-direction:column;gap:.6rem;margin-bottom:1rem;min-width:0}
+.g-sayes-bubble{position:relative;background:hsl(var(--paper));color:hsl(var(--ink));border:3px solid hsl(var(--ink));border-radius:1.2rem;padding:.75rem .9rem;box-shadow:0 6px 0 hsl(var(--ink))}
+.g-sayes-bubble::after{content:"";position:absolute;bottom:1.2rem;right:-14px;border:9px solid transparent;border-left-color:hsl(var(--ink))}
+.g-sayes-bubble b{display:block;font-size:.8rem;color:hsl(var(--red))}
+.g-sayes-bubble p{margin:.25rem 0 0;font-weight:800;line-height:1.7;font-size:1rem}
+.g-sayes-bubble.glow{box-shadow:0 6px 0 hsl(var(--ink)),0 0 28px hsl(var(--gold)/.85)}
+@media (max-width:640px){.g-sayes-avatar{width:6.6rem}.g-sayes-bubble p{font-size:.93rem}}

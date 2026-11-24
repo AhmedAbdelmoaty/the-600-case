@@ -4,6 +4,7 @@ export type Path = "data" | "ask";
 export type ClaimId = "aBetter" | "bBetter" | "equal" | "notRep" | "trainer" | "trainees";
 export type EvidenceId = "participants" | "complaintsRate" | "complaints" | "satisfaction" | "attendance" | "assignments" | "projects" | "respondents";
 export type QuestionId = "respondents" | "complaintsOfAll" | "attendance" | "complaintsCount" | "allData";
+export type SayesPay = "later" | "ten" | "fifty";
 export type Outcome = "win" | "lossGuess" | "lossData";
 
 export const DEADLINE_SECONDS = 120;
@@ -37,6 +38,7 @@ export interface State {
   outcome: Outcome | null;
   timedOut: boolean;
   order: ClaimId[];
+  sayes: SayesPay | null;
 }
 
 export function shuffle<T>(arr: T[], rng: () => number): T[] {
@@ -54,12 +56,14 @@ export function shuffle<T>(arr: T[], rng: () => number): T[] {
 const officeReset = { view: "think" as View, path: null, asked: [], claim: null, evidence: null, mismatch: false };
 
 export function initialState(): State {
-  return { phase: "intro", line: 0, officeEntered: false, penalty: 0, outcome: null, timedOut: false, order: ALL_CLAIMS, ...officeReset };
+  return { phase: "intro", line: 0, officeEntered: false, penalty: 0, outcome: null, timedOut: false, order: ALL_CLAIMS, sayes: null, ...officeReset };
 }
 
 export type Action =
   | { type: "start"; rng?: () => number }
   | { type: "next" }
+  | { type: "paySayes"; pay: SayesPay }
+  | { type: "sayesFifty" }
   | { type: "enterOffice" }
   | { type: "think"; to: "guess" | "data" | "ask" }
   | { type: "guess"; id: "trainer" | "trainees" | "data"; evidence?: EvidenceId | null }
@@ -97,6 +101,10 @@ export function reduce(s: State, a: Action): State {
       if (s.phase === "road") return { ...s, phase: "meeting", line: 0 };
       if (s.phase === "meeting") return s.line + 1 < MEETING_LENGTH ? { ...s, line: s.line + 1 } : { ...s, phase: "office", line: 0 };
       return s;
+    case "paySayes":
+      return s.phase === "road" && !s.sayes ? { ...s, sayes: a.pay } : s;
+    case "sayesFifty":
+      return inOffice && s.view === "email" && s.sayes && s.sayes !== "fifty" ? { ...s, sayes: "fifty" } : s;
     case "enterOffice":
       return s.phase === "office" ? { ...s, officeEntered: true } : s;
     case "think":
