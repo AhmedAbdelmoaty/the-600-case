@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ChevronDown, ChevronLeft, DoorOpen, Home, Mail, RotateCcw, Send, Smartphone, Volume2, VolumeX } from "lucide-react";
-import { DATA_PREPARATION_SECONDS, DEADLINE_SECONDS, claimsFor, initialState, reduce, timeLeft, type Action, type State } from "./engine";
+import { DATA_PREPARATION_SECONDS, DEADLINE_SECONDS, claimsFor, initialState, reduce, timeLeft, type Action, type EvidenceId, type State } from "./engine";
 import { BRIEF, CLAIM_LABELS, CONFIRM_PAIR, emailBody, GUESSES, LOSS_GUESS, LOSS_SUPERFICIAL, MEETING, METRICS, METRICS_LIST, QUESTIONS, SEIF_MESSAGES, TAKEAWAYS, THOUGHTS, TIMEOUT, TITLE, WIN, type Ending, type Line, type Metric, type Speaker } from "./content";
 import { PORTRAITS, SCENES, type SceneKey } from "./assets";
 import { DashChart, InlineReportCard, OfficialReportModal } from "./Chart";
@@ -188,23 +188,68 @@ function Think({ dispatch }: { dispatch: (a: Action) => void }) {
   return <><header className="g-work-head"><small>لحظة التفكير</small><h2>هتبدأ منين؟</h2></header><div className="g-path-grid">{(["guess", "data", "ask"] as const).map((to, i) => <motion.button key={to} className={`g-path-card path-${to}`} onClick={() => { sfx.tap(); dispatch({ type: "think", to }); }} initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: i * .07, duration: .24 }}><span>{i === 0 ? "⚡" : i === 1 ? "📊" : "❓"}</span><b>{THOUGHTS[to]}</b></motion.button>)}</div></>;
 }
 
+interface GuessFlowConfig {
+  claimId: "trainer" | "trainees";
+  metric: Metric;
+  claimText: string;
+  evidenceId: EvidenceId;
+  chartTitle: string;
+  adoptBtnText: string;
+}
+
+const GUESS_CONFIGS: Record<"trainer" | "trainees", GuessFlowConfig> = {
+  trainer: {
+    claimId: "trainer",
+    metric: METRICS.complaints,
+    claimText: "المشكلة في المحاضر وطريقة شرحه.",
+    evidenceId: "complaints",
+    chartTitle: "ملاحظة عدد الشكاوى (Complaints Count)",
+    adoptBtnText: "اعتمد الملاحظة في التوصية",
+  },
+  trainees: {
+    claimId: "trainees",
+    metric: METRICS.attendance,
+    claimText: "المشكلة في المتدربين ومش متوفر فيهم المهارات الأساسية.",
+    evidenceId: "attendance",
+    chartTitle: "دليل معدل الحضور (Attendance Rate)",
+    adoptBtnText: "اعتمد الدليل في التوصية",
+  },
+};
+
 function Guess({ dispatch }: { dispatch: (a: Action) => void }) {
-  const [obsOpen, setObsOpen] = useState(false);
-  const [traineesModalOpen, setTraineesModalOpen] = useState(false);
-  const [showAttendanceChart, setShowAttendanceChart] = useState(false);
+  const [activeConfig, setActiveConfig] = useState<GuessFlowConfig | null>(null);
+  const [step, setStep] = useState<"search" | "chart">("search");
+  const [stamped, setStamped] = useState(false);
 
   const handleSelect = (id: "trainer" | "trainees" | "data") => {
-    if (id === "trainer") {
+    if (id === "trainer" || id === "trainees") {
       sfx.tap();
-      setObsOpen(true);
-    } else if (id === "trainees") {
-      sfx.tap();
-      setShowAttendanceChart(false);
-      setTraineesModalOpen(true);
+      setActiveConfig(GUESS_CONFIGS[id]);
+      setStep("search");
+      setStamped(false);
     } else {
       sfx.pen();
       dispatch({ type: "guess", id });
     }
+  };
+
+  const handleAdopt = () => {
+    if (!activeConfig || stamped) return;
+    setStamped(true);
+    sfx.stamp();
+    window.setTimeout(() => {
+      const { claimId, evidenceId } = activeConfig;
+      setActiveConfig(null);
+      dispatch({ type: "guess", id: claimId, evidence: evidenceId });
+    }, 700);
+  };
+
+  const handleSkipEvidence = () => {
+    if (!activeConfig || stamped) return;
+    sfx.pen();
+    const { claimId } = activeConfig;
+    setActiveConfig(null);
+    dispatch({ type: "guess", id: claimId, evidence: null });
   };
 
   return (
@@ -223,66 +268,16 @@ function Guess({ dispatch }: { dispatch: (a: Action) => void }) {
         ارجع وفكر تاني
       </button>
 
-      <Dialog.Root open={obsOpen} onOpenChange={setObsOpen}>
+      <Dialog.Root open={Boolean(activeConfig)} onOpenChange={(open) => { if (!open && !stamped) setActiveConfig(null); }}>
         <Dialog.Portal>
           <Dialog.Overlay className="g-preparation-backdrop" />
           <Dialog.Content className="g-pair-confirmation g-obs-modal" aria-describedby={undefined}>
-            <Dialog.Title>ملاحظة بخصوص عدد الشكاوى</Dialog.Title>
-            <div className="g-obs-body">
-              <p className="g-obs-desc">
-                لوحظ أن <strong>المجموعة الأولى</strong> سُجّل فيها <strong>3 شكاوى</strong>، بينما <strong>المجموعة الثانية</strong> سُجّل فيها <strong>10 شكاوى</strong>.
-              </p>
-              <div className="g-obs-chips">
-                <div className="g-obs-chip chip-a">
-                  <span>المجموعة الأولى</span>
-                  <b>3 شكاوى</b>
-                </div>
-                <div className="g-obs-chip chip-b">
-                  <span>المجموعة الثانية</span>
-                  <b>10 شكاوى</b>
-                </div>
-              </div>
-              <p className="g-obs-prompt">هل تريد اعتماد هذه الملاحظة في التوصية؟</p>
-            </div>
-            <div className="g-confirm-actions">
-              <GameButton
-                className="primary"
-                onClick={() => {
-                  setObsOpen(false);
-                  sfx.pen();
-                  dispatch({ type: "guess", id: "trainer", evidence: "complaints" });
-                }}
-              >
-                اعتمد الملاحظة في التوصية
-              </GameButton>
-              <GameButton
-                className="secondary"
-                onClick={() => {
-                  setObsOpen(false);
-                  sfx.pen();
-                  dispatch({ type: "guess", id: "trainer", evidence: null });
-                }}
-              >
-                لا، إرسال التوصية بدونها
-              </GameButton>
-            </div>
-            <button type="button" className="g-obs-cancel-btn" onClick={() => setObsOpen(false)}>
-              تراجع عن الاختيار
-            </button>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
-
-      <Dialog.Root open={traineesModalOpen} onOpenChange={setTraineesModalOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="g-preparation-backdrop" />
-          <Dialog.Content className="g-pair-confirmation g-obs-modal" aria-describedby={undefined}>
-            {!showAttendanceChart ? (
+            {activeConfig && step === "search" && (
               <>
                 <Dialog.Title>البحث عن دليل</Dialog.Title>
                 <div className="g-obs-body">
                   <p className="g-obs-desc">
-                    اخترت: <strong>المشكلة في المتدربين ومش متوفر فيهم المهارات الأساسية.</strong>
+                    اخترت: <strong>{activeConfig.claimText}</strong>
                     <br />
                     هل ترغب في البحث عن دليل يدعم هذا التفسير قبل إرسال التوصية؟
                   </p>
@@ -292,63 +287,56 @@ function Guess({ dispatch }: { dispatch: (a: Action) => void }) {
                     className="primary"
                     onClick={() => {
                       sfx.tap();
-                      setShowAttendanceChart(true);
+                      setStep("chart");
                     }}
                   >
                     ابحث عن دليل
                   </GameButton>
                   <GameButton
                     className="secondary"
-                    onClick={() => {
-                      setTraineesModalOpen(false);
-                      sfx.pen();
-                      dispatch({ type: "guess", id: "trainees", evidence: null });
-                    }}
+                    onClick={handleSkipEvidence}
                   >
                     المتابعة للتوصية بدون دليل
                   </GameButton>
                 </div>
-                <button type="button" className="g-obs-cancel-btn" onClick={() => setTraineesModalOpen(false)}>
+                <button type="button" className="g-obs-cancel-btn" onClick={() => setActiveConfig(null)}>
                   تراجع عن الاختيار
                 </button>
               </>
-            ) : (
+            )}
+
+            {activeConfig && step === "chart" && (
               <>
-                <Dialog.Title>دليل معدل الحضور (Attendance Rate)</Dialog.Title>
-                <div className="g-obs-body">
-                  <p className="g-obs-desc">
-                    نسبة الحضور الفعلي للمحاضرات: <strong>المجموعة الأولى 75%</strong> مقابل <strong>المجموعة الثانية 95%</strong>.
-                  </p>
-                  <div className="g-obs-chart-container">
-                    <DashChart metric={METRICS.attendance} />
-                  </div>
-                  <p className="g-obs-prompt">هل تريد اعتماد هذا الدليل في التوصية؟</p>
+                <Dialog.Title>{activeConfig.chartTitle}</Dialog.Title>
+                <div className="g-obs-report-wrap">
+                  <InlineReportCard metric={activeConfig.metric} stamped={stamped} />
                 </div>
+                <p className="g-obs-prompt">
+                  {activeConfig.claimId === "trainer"
+                    ? "هل تريد اعتماد هذه الملاحظة في التوصية؟"
+                    : "هل تريد اعتماد هذا الدليل في التوصية؟"}
+                </p>
                 <div className="g-confirm-actions">
                   <GameButton
                     className="primary"
-                    onClick={() => {
-                      setTraineesModalOpen(false);
-                      sfx.pen();
-                      dispatch({ type: "guess", id: "trainees", evidence: "attendance" });
-                    }}
+                    disabled={stamped}
+                    onClick={handleAdopt}
                   >
-                    اعتمد الدليل في التوصية
+                    {stamped ? "تم الاعتماد ✓" : activeConfig.adoptBtnText}
                   </GameButton>
                   <GameButton
                     className="secondary"
-                    onClick={() => {
-                      setTraineesModalOpen(false);
-                      sfx.pen();
-                      dispatch({ type: "guess", id: "trainees", evidence: null });
-                    }}
+                    disabled={stamped}
+                    onClick={handleSkipEvidence}
                   >
-                    لا، إرسال التوصية بدون اعتماد الدليل
+                    لا، إرسال التوصية بدونها
                   </GameButton>
                 </div>
-                <button type="button" className="g-obs-cancel-btn" onClick={() => setShowAttendanceChart(false)}>
-                  الرجوع للخطوة السابقة
-                </button>
+                {!stamped && (
+                  <button type="button" className="g-obs-cancel-btn" onClick={() => setStep("search")}>
+                    الرجوع للخطوة السابقة
+                  </button>
+                )}
               </>
             )}
           </Dialog.Content>

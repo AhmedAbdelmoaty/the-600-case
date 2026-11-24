@@ -1,8 +1,8 @@
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle, FileText, X } from "lucide-react";
 import type { Metric } from "./content";
 
-export function InlineReportCard({ metric }: { metric: Metric }) {
+export function InlineReportCard({ metric, stamped = true }: { metric: Metric; stamped?: boolean }) {
   const hA = Math.max(15, Math.round((metric.a / metric.max) * 100));
   const hB = Math.max(15, Math.round((metric.b / metric.max) * 100));
   const fmt = (v: number) => (metric.unit ? `${v}${metric.unit}` : `${v}`);
@@ -32,7 +32,23 @@ export function InlineReportCard({ metric }: { metric: Metric }) {
           </div>
         </div>
       </div>
-      <footer className="g-inline-foot"><div className="g-report-stamp mini"><CheckCircle size={13} /><span>معتمد</span></div><p className="g-inline-note">{metric.note}</p></footer>
+      <footer className="g-inline-foot">
+        <AnimatePresence>
+          {stamped && (
+            <motion.div
+              className="g-report-stamp mini"
+              initial={{ scale: 2.2, rotate: -20, opacity: 0 }}
+              animate={{ scale: 1, rotate: -4, opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ type: "spring", damping: 14, stiffness: 220 }}
+            >
+              <CheckCircle size={13} />
+              <span>معتمد</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <p className="g-inline-note">{metric.note}</p>
+      </footer>
     </motion.article>
   );
 }
