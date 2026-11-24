@@ -16,8 +16,20 @@ export function InlineReportCard({ metric }: { metric: Metric }) {
       <div className="g-inline-chart" dir="ltr">
         <div className="g-report-grid-lines"><span /><span /><span /></div>
         <div className="g-report-columns">
-          <div className="g-report-col col-a"><span className="g-report-val">{fmt(metric.a)}</span><motion.div className="g-report-bar bar-a" initial={{ height: 0 }} animate={{ height: `${hA}%` }} transition={{ duration: .45, ease: "easeOut" }} /><span className="g-report-col-label">المجموعة الأولى</span></div>
-          <div className="g-report-col col-b"><span className="g-report-val">{fmt(metric.b)}</span><motion.div className="g-report-bar bar-b" initial={{ height: 0 }} animate={{ height: `${hB}%` }} transition={{ duration: .45, delay: .1, ease: "easeOut" }} /><span className="g-report-col-label">المجموعة الثانية</span></div>
+          <div className="g-report-col col-a">
+            <span className="g-report-val">{fmt(metric.a)}</span>
+            <div className="g-report-bar-wrap">
+              <motion.div className="g-report-bar bar-a" initial={{ height: 0 }} animate={{ height: `${hA}%` }} transition={{ duration: .45, ease: "easeOut" }} />
+            </div>
+            <span className="g-report-col-label">المجموعة الأولى</span>
+          </div>
+          <div className="g-report-col col-b">
+            <span className="g-report-val">{fmt(metric.b)}</span>
+            <div className="g-report-bar-wrap">
+              <motion.div className="g-report-bar bar-b" initial={{ height: 0 }} animate={{ height: `${hB}%` }} transition={{ duration: .45, delay: .1, ease: "easeOut" }} />
+            </div>
+            <span className="g-report-col-label">المجموعة الثانية</span>
+          </div>
         </div>
       </div>
       <footer className="g-inline-foot"><div className="g-report-stamp mini"><CheckCircle size={13} /><span>معتمد</span></div><p className="g-inline-note">{metric.note}</p></footer>
@@ -42,8 +54,20 @@ export function OfficialReportModal({ metric, onClose }: { metric: Metric; onClo
         <div className="g-report-chart-area" dir="ltr">
           <div className="g-report-grid-lines"><span /><span /><span /><span /></div>
           <div className="g-report-columns">
-            <div className="g-report-col col-a"><span className="g-report-val">{fmt(metric.a)}</span><motion.div className="g-report-bar bar-a" initial={{ height: 0 }} animate={{ height: `${hA}%` }} transition={{ duration: .5, ease: "easeOut" }} /><span className="g-report-col-label">المجموعة الأولى</span></div>
-            <div className="g-report-col col-b"><span className="g-report-val">{fmt(metric.b)}</span><motion.div className="g-report-bar bar-b" initial={{ height: 0 }} animate={{ height: `${hB}%` }} transition={{ duration: .5, delay: .1, ease: "easeOut" }} /><span className="g-report-col-label">المجموعة الثانية</span></div>
+            <div className="g-report-col col-a">
+              <span className="g-report-val">{fmt(metric.a)}</span>
+              <div className="g-report-bar-wrap">
+                <motion.div className="g-report-bar bar-a" initial={{ height: 0 }} animate={{ height: `${hA}%` }} transition={{ duration: .5, ease: "easeOut" }} />
+              </div>
+              <span className="g-report-col-label">المجموعة الأولى</span>
+            </div>
+            <div className="g-report-col col-b">
+              <span className="g-report-val">{fmt(metric.b)}</span>
+              <div className="g-report-bar-wrap">
+                <motion.div className="g-report-bar bar-b" initial={{ height: 0 }} animate={{ height: `${hB}%` }} transition={{ duration: .5, delay: .1, ease: "easeOut" }} />
+              </div>
+              <span className="g-report-col-label">المجموعة الثانية</span>
+            </div>
           </div>
         </div>
         <footer className="g-report-footer"><div className="g-report-stamp"><CheckCircle size={15} /><span>معتمد</span></div><p className="g-report-note">{metric.note}</p></footer>
@@ -53,18 +77,49 @@ export function OfficialReportModal({ metric, onClose }: { metric: Metric; onClo
 }
 
 export function DashChart({ metric, onZoom, selected, onSelect }: { metric: Metric; onZoom?: () => void; selected?: boolean; onSelect?: () => void }) {
-  const hA = Math.max(10, Math.round((metric.a / metric.max) * 100));
-  const hB = Math.max(10, Math.round((metric.b / metric.max) * 100));
+  const hA = Math.max(6, Math.round((metric.a / metric.max) * 100));
+  const hB = Math.max(6, Math.round((metric.b / metric.max) * 100));
   const fmt = (v: number) => (metric.unit ? `${v}${metric.unit}` : `${v}`);
-  const body = <><header dir="ltr"><b>{metric.label}</b><span className={`g-source-tag tag-${metric.source.toLowerCase()}`}>{metric.source}</span></header>
-    <div className="g-dash-bars" dir="ltr">
-      <div><em>{fmt(metric.a)}</em><motion.i className="bar-a" initial={{ height: 0 }} animate={{ height: `${hA}%` }} transition={{ duration: .45 }} /><small>الأولى</small></div>
-      <div><em>{fmt(metric.b)}</em><motion.i className="bar-b" initial={{ height: 0 }} animate={{ height: `${hB}%` }} transition={{ duration: .45, delay: .08 }} /><small>الثانية</small></div>
-    </div></>;
-  return <div className={`g-dash-chart ${onSelect ? "is-pick" : ""} ${selected ? "is-selected" : ""}`}>
-    {onSelect ? <button className="g-dash-hit" aria-pressed={selected} onClick={onSelect}>{body}</button> : body}
-    {onZoom && <button className="g-dash-zoom" aria-label={`تكبير ${metric.label}`} onClick={onZoom}>⤢</button>}
-  </div>;
+  const body = (
+    <>
+      <header dir="ltr">
+        <b>{metric.label}</b>
+        <span className={`g-source-tag tag-${metric.source.toLowerCase()}`}>{metric.source}</span>
+      </header>
+      <div className="g-dash-bars" dir="ltr">
+        <div className="g-dash-col">
+          <em>{fmt(metric.a)}</em>
+          <div className="g-dash-bar-track">
+            <motion.i
+              className="bar-a"
+              initial={{ height: 0 }}
+              animate={{ height: `${hA}%` }}
+              transition={{ duration: 0.45, ease: "easeOut" }}
+            />
+          </div>
+          <small>الأولى</small>
+        </div>
+        <div className="g-dash-col">
+          <em>{fmt(metric.b)}</em>
+          <div className="g-dash-bar-track">
+            <motion.i
+              className="bar-b"
+              initial={{ height: 0 }}
+              animate={{ height: `${hB}%` }}
+              transition={{ duration: 0.45, delay: 0.08, ease: "easeOut" }}
+            />
+          </div>
+          <small>الثانية</small>
+        </div>
+      </div>
+    </>
+  );
+  return (
+    <div className={`g-dash-chart ${onSelect ? "is-pick" : ""} ${selected ? "is-selected" : ""}`}>
+      {onSelect ? <button className="g-dash-hit" aria-pressed={selected} onClick={onSelect}>{body}</button> : body}
+      {onZoom && <button className="g-dash-zoom" aria-label={`تكبير ${metric.label}`} onClick={onZoom}>⤢</button>}
+    </div>
+  );
 }
 
 export function MiniEvidenceChip({ metric, selected, onClick }: { metric: Metric; selected?: boolean; onClick: () => void }) {
