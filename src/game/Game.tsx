@@ -190,11 +190,17 @@ function Think({ dispatch }: { dispatch: (a: Action) => void }) {
 
 function Guess({ dispatch }: { dispatch: (a: Action) => void }) {
   const [obsOpen, setObsOpen] = useState(false);
+  const [traineesModalOpen, setTraineesModalOpen] = useState(false);
+  const [showAttendanceChart, setShowAttendanceChart] = useState(false);
 
   const handleSelect = (id: "trainer" | "trainees" | "data") => {
     if (id === "trainer") {
       sfx.tap();
       setObsOpen(true);
+    } else if (id === "trainees") {
+      sfx.tap();
+      setShowAttendanceChart(false);
+      setTraineesModalOpen(true);
     } else {
       sfx.pen();
       dispatch({ type: "guess", id });
@@ -263,6 +269,88 @@ function Guess({ dispatch }: { dispatch: (a: Action) => void }) {
             <button type="button" className="g-obs-cancel-btn" onClick={() => setObsOpen(false)}>
               تراجع عن الاختيار
             </button>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      <Dialog.Root open={traineesModalOpen} onOpenChange={setTraineesModalOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="g-preparation-backdrop" />
+          <Dialog.Content className="g-pair-confirmation g-obs-modal" aria-describedby={undefined}>
+            {!showAttendanceChart ? (
+              <>
+                <Dialog.Title>البحث عن دليل</Dialog.Title>
+                <div className="g-obs-body">
+                  <p className="g-obs-desc">
+                    اخترت: <strong>المشكلة في المتدربين ومش متوفر فيهم المهارات الأساسية.</strong>
+                    <br />
+                    هل ترغب في البحث عن دليل يدعم هذا التفسير قبل إرسال التوصية؟
+                  </p>
+                </div>
+                <div className="g-confirm-actions">
+                  <GameButton
+                    className="primary"
+                    onClick={() => {
+                      sfx.tap();
+                      setShowAttendanceChart(true);
+                    }}
+                  >
+                    ابحث عن دليل
+                  </GameButton>
+                  <GameButton
+                    className="secondary"
+                    onClick={() => {
+                      setTraineesModalOpen(false);
+                      sfx.pen();
+                      dispatch({ type: "guess", id: "trainees", evidence: null });
+                    }}
+                  >
+                    المتابعة للتوصية بدون دليل
+                  </GameButton>
+                </div>
+                <button type="button" className="g-obs-cancel-btn" onClick={() => setTraineesModalOpen(false)}>
+                  تراجع عن الاختيار
+                </button>
+              </>
+            ) : (
+              <>
+                <Dialog.Title>دليل معدل الحضور (Attendance Rate)</Dialog.Title>
+                <div className="g-obs-body">
+                  <p className="g-obs-desc">
+                    نسبة الحضور الفعلي للمحاضرات: <strong>المجموعة الأولى 75%</strong> مقابل <strong>المجموعة الثانية 95%</strong>.
+                  </p>
+                  <div className="g-obs-chart-container">
+                    <DashChart metric={METRICS.attendance} />
+                  </div>
+                  <p className="g-obs-prompt">هل تريد اعتماد هذا الدليل في التوصية؟</p>
+                </div>
+                <div className="g-confirm-actions">
+                  <GameButton
+                    className="primary"
+                    onClick={() => {
+                      setTraineesModalOpen(false);
+                      sfx.pen();
+                      dispatch({ type: "guess", id: "trainees", evidence: "attendance" });
+                    }}
+                  >
+                    اعتمد الدليل في التوصية
+                  </GameButton>
+                  <GameButton
+                    className="secondary"
+                    onClick={() => {
+                      setTraineesModalOpen(false);
+                      sfx.pen();
+                      dispatch({ type: "guess", id: "trainees", evidence: null });
+                    }}
+                  >
+                    لا، إرسال التوصية بدون اعتماد الدليل
+                  </GameButton>
+                </div>
+                <button type="button" className="g-obs-cancel-btn" onClick={() => setShowAttendanceChart(false)}>
+                  الرجوع للخطوة السابقة
+                </button>
+              </>
+            )}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

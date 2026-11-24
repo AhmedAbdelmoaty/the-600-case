@@ -329,6 +329,8 @@
 .g-obs-chip.chip-a b{color:#991b1b}
 .g-obs-chip.chip-b b{color:#0369a1}
 .g-obs-prompt{font-size:1rem;font-weight:800;margin:.85rem 0 .2rem;color:hsl(var(--ink))}
+.g-obs-chart-container{display:flex;justify-content:center;margin:.8rem auto .6rem;max-width:240px;width:100%}
+.g-obs-chart-container .g-dash-chart{width:100%;box-shadow:0 4px 12px rgb(0 0 0/.08)}
 .g-obs-cancel-btn{display:inline-block;background:none;border:none;color:#64748b;font-size:.85rem;font-weight:700;margin-top:.85rem;cursor:pointer;text-decoration:underline;padding:.2rem .5rem}
 .g-obs-cancel-btn:hover{color:#0f172a}
 .g-question-back{display:flex;margin:1rem auto 0}

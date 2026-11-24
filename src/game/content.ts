@@ -100,6 +100,9 @@ export function emailBody(claim: ClaimId, evidence: EvidenceId | null): string {
   if (claim === "trainer" && evidence === "complaints") {
     return "بناءً على أن عدد الشكاوى في المجموعة الثانية أكثر، المشكلة في المحاضر وطريقة شرحه، وأوصي بتغيير المحاضر في الكورس القادم.";
   }
+  if (claim === "trainees" && evidence === "attendance") {
+    return "المشكلة في المتدربين ومش متوفر فيهم المهارات الأساسية، وأوصي بمراجعة اختيار المرشحين، بناءً على معدل الحضور وعدم الالتزام.";
+  }
   if (evidence && supports(claim, evidence)) return EMAIL_BODIES[claim];
   return GENERAL_EMAIL_BODIES[claim] ?? EMAIL_BODIES[claim];
 }

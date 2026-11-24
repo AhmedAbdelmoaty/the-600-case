@@ -37,6 +37,8 @@ describe("Training Evaluation content", () => {
     expect(emailBody("notRep", "assignments")).toBe(emailBody("notRep", "attendance"));
     expect(emailBody("trainer", null)).toBe(EMAIL_BODIES.trainer);
     expect(emailBody("trainer", "complaints")).toBe("بناءً على أن عدد الشكاوى في المجموعة الثانية أكثر، المشكلة في المحاضر وطريقة شرحه، وأوصي بتغيير المحاضر في الكورس القادم.");
+    expect(emailBody("trainees", null)).toBe(EMAIL_BODIES.trainees);
+    expect(emailBody("trainees", "attendance")).toBe("المشكلة في المتدربين ومش متوفر فيهم المهارات الأساسية، وأوصي بمراجعة اختيار المرشحين، بناءً على معدل الحضور وعدم الالتزام.");
   });
   it("provides three takeaways for win and loss", () => {
     expect(TAKEAWAYS.win).toHaveLength(3);
