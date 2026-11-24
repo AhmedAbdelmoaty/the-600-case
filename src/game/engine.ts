@@ -69,6 +69,7 @@ export type Action =
   | { type: "evidence"; id: EvidenceId }
   | { type: "confirm" }
   | { type: "backToThink" }
+  | { type: "backFromEmail" }
   | { type: "send" }
   | { type: "timeout" }
   | { type: "retry" }
@@ -124,6 +125,10 @@ export function reduce(s: State, a: Action): State {
     case "confirm":
       if (!inOffice || !s.claim || !s.evidence) return s;
       return { ...s, view: "email" };
+    case "backFromEmail":
+      if (!inOffice || s.view !== "email") return s;
+      if (s.claim === "trainer" || s.claim === "trainees") return { ...s, view: "guess", claim: null };
+      return { ...s, view: s.path === "ask" ? "ask" : "data" };
     case "backToThink":
       return {
         ...s,

@@ -335,3 +335,23 @@
   .g-office-stage{padding-top:6.5rem}
   .g-office-view{max-height:calc(100dvh - 7rem)}
 }
+
+.g-back-solid{background:#fff!important;color:#1f2937!important;opacity:1!important;border:1px solid #d1d5db;box-shadow:0 4px 12px rgba(0,0,0,.18)}
+.g-row-actions{display:flex;gap:.5rem;margin-top:.6rem}.g-row-actions>*{flex:1;min-width:0;margin:0!important}
+.g-mail-actions{flex-wrap:nowrap}.g-mail-actions>*{flex:1}
+.g-dash-board{background:#fff;border-radius:.7rem;padding:.6rem;box-shadow:0 12px 30px rgba(0,0,0,.3)}
+.g-dash-board>header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.45rem;color:#111827;font-size:.85rem}
+.g-dash-board>header span{display:flex;gap:.3rem;align-items:center;font-size:.7rem;color:#4b5563}.g-dash-board>header i{display:inline-block;width:.6rem;height:.6rem;border-radius:2px}
+.g-dash-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.4rem}
+@media (max-width:900px){.g-dash-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.g-dash-chart{position:relative;background:#f8fafc;border:1px solid #e5e7eb;border-radius:.45rem;padding:.4rem;color:#111827}
+.g-dash-chart header{display:flex;justify-content:space-between;gap:.25rem;align-items:center}.g-dash-chart header b{font-size:.72rem;line-height:1.2}
+.g-dash-chart .g-source-tag{font-size:.55rem;padding:0 .25rem}
+.g-dash-bars{display:flex;justify-content:center;align-items:flex-end;gap:.8rem;height:78px;margin-top:.25rem}
+.g-dash-bars>div{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;width:30px}
+.g-dash-bars em{font-style:normal;font-weight:800;font-size:.72rem}.g-dash-bars i{width:100%;border-radius:3px 3px 0 0;display:block}.g-dash-bars small{font-size:.6rem;color:#6b7280}
+.bar-a{background:#9b1c1c}.bar-b{background:#0277bd}
+.g-pick-grid .g-dash-bars{height:52px}.g-pick-grid .g-dash-chart{padding:0}
+.g-dash-hit{all:unset;display:block;box-sizing:border-box;width:100%;padding:.35rem;padding-bottom:.25rem;cursor:pointer}
+.g-dash-chart.is-selected{border-color:#2563eb;background:#eff6ff;box-shadow:0 0 0 2px #93c5fd}
+.g-dash-zoom{position:absolute;bottom:.2rem;right:.2rem;width:1.4rem;height:1.4rem;border-radius:.3rem;border:1px solid #d1d5db;background:#fff;font-size:.7rem;cursor:pointer}

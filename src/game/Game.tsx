@@ -4,7 +4,7 @@ import { ArrowLeft, ChevronDown, ChevronLeft, DoorOpen, Home, Mail, RotateCcw, S
 import { DATA_PREPARATION_SECONDS, DEADLINE_SECONDS, claimsFor, initialState, reduce, timeLeft, type Action, type State } from "./engine";
 import { BRIEF, CLAIM_LABELS, CONFIRM_PAIR, emailBody, GUESSES, LOSS_GUESS, LOSS_SUPERFICIAL, MEETING, METRICS, METRICS_LIST, QUESTIONS, SEIF_MESSAGES, SUBTITLE_AR, TAKEAWAYS, THOUGHTS, TIMEOUT, TITLE, WIN, type Ending, type Line, type Metric, type Speaker } from "./content";
 import { PORTRAITS, SCENES, type SceneKey } from "./assets";
-import { InlineReportCard, OfficialReportModal } from "./Chart";
+import { DashChart, InlineReportCard, OfficialReportModal } from "./Chart";
 import { setMuted, sfx, startBgm, tick, whoosh } from "./audio";
 import * as Dialog from "@radix-ui/react-dialog";
 import { GameButton } from "./GameButton";
@@ -139,7 +139,7 @@ function Think({ dispatch }: { dispatch: (a: Action) => void }) {
 }
 
 function Guess({ dispatch }: { dispatch: (a: Action) => void }) {
-  return <><header className="g-work-head"><small>طريق التخمين</small><h2>إيه تفسيرك الأول؟</h2></header><div className="g-choice-list">{GUESSES.map((g) => <button key={g.id} onClick={() => { sfx.pen(); dispatch({ type: "guess", id: g.id }); }}>{g.text}</button>)}</div><button className="g-btn quiet" onClick={() => dispatch({ type: "backToThink" })}>ارجع وفكر تاني</button></>;
+  return <><header className="g-work-head"><h2>إيه تفسيرك الأول؟</h2></header><div className="g-choice-list">{GUESSES.map((g) => <button key={g.id} onClick={() => { sfx.pen(); dispatch({ type: "guess", id: g.id }); }}>{g.text}</button>)}</div><button className="g-btn secondary g-back-solid" onClick={() => dispatch({ type: "backToThink" })}>ارجع وفكر تاني</button></>;
 }
 
 function DataPreparation({ dispatch }: { dispatch: (a: Action) => void }) {
@@ -161,13 +161,13 @@ function DataPreparation({ dispatch }: { dispatch: (a: Action) => void }) {
 }
 
 function DataView({ state, dispatch, openReport }: { state: State; dispatch: (a: Action) => void; openReport: (m: Metric) => void }) {
-  return <><header className="g-work-head compact"><small>لوحة بيانات التدريب</small><h2>اختار الدليل اللي هتعتمد عليه أولاً</h2></header>
-    <div className="g-dashboard">{METRICS_LIST.map((metric) => <div key={metric.id} className={`g-dashboard-item ${state.evidence === metric.id ? "is-selected" : ""}`}>
-      <InlineReportCard metric={metric} />
-      <div className="g-dashboard-actions"><GameButton className="secondary" aria-pressed={state.evidence === metric.id} onClick={() => dispatch({ type: "evidence", id: metric.id })}>{state.evidence === metric.id ? "الدليل المختار" : "اعتمد الدليل"}</GameButton><GameButton className="secondary" aria-label={`تكبير ${metric.labelAr}`} title="تكبير التقرير" onClick={() => openReport(metric)}>⤢</GameButton></div>
-    </div>)}</div>
-    {state.evidence && <ClaimPicker key={state.evidence} state={state} dispatch={dispatch} />}
-    <GameButton className="secondary" onClick={() => dispatch({ type: "backToThink" })}>ارجع للبداية</GameButton></>;
+  const [picking, setPicking] = useState(Boolean(state.evidence));
+  const restart = () => dispatch({ type: "backToThink" });
+  if (!picking) return <><section className="g-dash-board" dir="ltr"><header><b>Training Dashboard</b><span><i className="bar-a" />Group A <i className="bar-b" />Group B</span></header><div className="g-dash-grid">{METRICS_LIST.map((m) => <DashChart key={m.id} metric={m} />)}</div></section>
+    <div className="g-row-actions"><GameButton className="primary" onClick={() => { sfx.tap(); setPicking(true); }}>اختار الدليل والاستنتاج</GameButton><GameButton className="secondary" onClick={restart}>ارجع للبداية</GameButton></div></>;
+  return <><header className="g-work-head compact"><h2>اختار الدليل اللي هتعتمد عليه أولاً</h2></header>
+    <div className="g-dash-grid g-pick-grid">{METRICS_LIST.map((m) => <DashChart key={m.id} metric={m} selected={state.evidence === m.id} onSelect={() => dispatch({ type: "evidence", id: m.id })} onZoom={() => openReport(m)} />)}</div>
+    {state.evidence ? <ClaimPicker key={state.evidence} state={state} dispatch={dispatch} extra={<GameButton className="secondary" onClick={restart}>ارجع للبداية</GameButton>} /> : <div className="g-row-actions"><GameButton className="secondary" onClick={() => setPicking(false)}>رجوع للداشبورد</GameButton><GameButton className="secondary" onClick={restart}>ارجع للبداية</GameButton></div>}</>;
 }
 
 function AskView({ state, dispatch }: { state: State; dispatch: (a: Action) => void }) {
@@ -176,14 +176,14 @@ function AskView({ state, dispatch }: { state: State; dispatch: (a: Action) => v
   if (asked.na) return <section className="g-na-card"><span>غير متاح</span><h2>Data Not Available</h2><GameButton className="primary" onClick={() => dispatch({ type: "resetAsk" })}>الرجوع لقائمة الأسئلة</GameButton></section>;
   if (!asked.shows) return null;
   const metric = METRICS[asked.shows];
-  return <><header className="g-work-head compact"><small>إجابة السؤال</small><h2>{asked.text}</h2></header><InlineReportCard metric={metric} /><ClaimPicker key={metric.id} state={state} dispatch={dispatch} /><GameButton className="secondary g-question-back" onClick={() => dispatch({ type: "resetAsk" })}>الرجوع لقائمة الأسئلة</GameButton></>;
+  return <><header className="g-work-head compact"><small>إجابة السؤال</small><h2>{asked.text}</h2></header><InlineReportCard metric={metric} /><ClaimPicker key={metric.id} state={state} dispatch={dispatch} extra={<GameButton className="secondary" onClick={() => dispatch({ type: "resetAsk" })}>الرجوع لقائمة الأسئلة</GameButton>} /></>;
 }
 
-function ClaimPicker({ state, dispatch }: { state: State; dispatch: (a: Action) => void }) {
+function ClaimPicker({ state, dispatch, extra }: { state: State; dispatch: (a: Action) => void; extra?: import("react").ReactNode }) {
   const [confirming, setConfirming] = useState(false);
   const claims = claimsFor(state);
   return <section className="g-claim-zone"><h3>اختار الاستنتاج اللي شايف إن الدليل ده بيدعمه</h3><div className="g-claims">{claims.map((id) => <button key={id} className={state.claim === id ? "is-selected" : ""} onClick={() => dispatch({ type: "claim", id })}><b>{CLAIM_LABELS[id]}</b></button>)}</div>
-    <GameButton className="primary big" disabled={!state.claim || !state.evidence} onClick={() => setConfirming(true)}><Mail /> اكتب التوصية</GameButton>
+    <div className="g-row-actions"><GameButton className="primary" disabled={!state.claim || !state.evidence} onClick={() => setConfirming(true)}><Mail /> اكتب التوصية</GameButton>{extra}</div>
     <Dialog.Root open={confirming} onOpenChange={setConfirming}><Dialog.Portal><Dialog.Overlay className="g-preparation-backdrop" /><Dialog.Content className="g-pair-confirmation" aria-describedby={undefined}><Dialog.Title>{CONFIRM_PAIR}</Dialog.Title><div className="g-confirm-actions"><GameButton className="primary" onClick={() => { setConfirming(false); dispatch({ type: "confirm" }); }}>نعم، متأكد - اكتب التوصية</GameButton><GameButton className="secondary" onClick={() => setConfirming(false)}>تعديل الاختيار</GameButton></div></Dialog.Content></Dialog.Portal></Dialog.Root>
   </section>;
 }
@@ -192,7 +192,7 @@ function Email({ state, dispatch, onSend }: { state: State; dispatch: (a: Action
   const [flying, setFlying] = useState(false);
   const claim = state.claim;
   if (!claim) return null;
-  return <motion.article className="g-mail" initial={{ y: 30, opacity: 0 }} animate={flying ? { y: "-90vh", x: "-25vw", scale: .2, rotate: -18, opacity: 0 } : { y: 0, opacity: 1 }} transition={flying ? { duration: .8, ease: "easeIn" } : { duration: .25 }}><div className="g-mail-bar"><Mail /> رسالة جديدة</div><div className="g-mail-head"><p><b>إلى:</b> مستر سيف — المدير العام</p><p><b>الموضوع:</b> توصية تقييم كورس التدريب والتجديد</p></div><p className="g-mail-hi">مستر سيف،</p><p className="g-mail-body">{emailBody(claim, state.evidence)}</p><p className="g-mail-sign">وتفضلوا بقبول فائق الاحترام،<br />محلل الموارد البشرية</p><div className="g-mail-actions"><button className="g-btn primary big" disabled={flying} onClick={() => { setFlying(true); whoosh(); window.setTimeout(onSend, 800); }}><Send /> {flying ? "التوصية في الطريق" : "إرسال التوصية"}</button><button className="g-btn secondary" disabled={flying} onClick={() => dispatch({ type: "backToThink" })}>راجع التحليل</button></div></motion.article>;
+  return <motion.article className="g-mail" initial={{ y: 30, opacity: 0 }} animate={flying ? { y: "-90vh", x: "-25vw", scale: .2, rotate: -18, opacity: 0 } : { y: 0, opacity: 1 }} transition={flying ? { duration: .8, ease: "easeIn" } : { duration: .25 }}><div className="g-mail-bar"><Mail /> رسالة جديدة</div><div className="g-mail-head"><p><b>إلى:</b> مستر سيف — المدير العام</p><p><b>الموضوع:</b> توصية تقييم كورس التدريب والتجديد</p></div><p className="g-mail-hi">مستر سيف،</p><p className="g-mail-body">{emailBody(claim, state.evidence)}</p><p className="g-mail-sign">وتفضلوا بقبول فائق الاحترام،<br />محلل الموارد البشرية</p><div className="g-mail-actions"><button className="g-btn primary big" disabled={flying} onClick={() => { setFlying(true); whoosh(); window.setTimeout(onSend, 800); }}><Send /> {flying ? "التوصية في الطريق" : "إرسال التوصية"}</button><button className="g-btn secondary" disabled={flying} onClick={() => dispatch({ type: "backFromEmail" })}>راجع التحليل</button></div></motion.article>;
 }
 
 function Verdict({ state, dispatch, travel }: { state: State; dispatch: (a: Action) => void; travel: (a: Action) => void }) {

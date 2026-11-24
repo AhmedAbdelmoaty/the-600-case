@@ -33,6 +33,13 @@ describe("Training Evaluation engine", () => {
     }
     expect(isCorrect("notRep", "attendance")).toBe(false);
   });
+  it("review analysis returns one step back, keeping choices", () => {
+    const email = run([...data, { type: "evidence", id: "respondents" }, { type: "claim", id: "notRep" }, { type: "confirm" }]);
+    const back = reduce(email, { type: "backFromEmail" });
+    expect(back.view).toBe("data");
+    expect(back.claim).toBe("notRep");
+  });
+
   it("clears the conclusion when replacing evidence", () => {
     expect(run([...data, { type: "evidence", id: "respondents" }, { type: "claim", id: "notRep" }, { type: "evidence", id: "attendance" }]).claim).toBeNull();
   });

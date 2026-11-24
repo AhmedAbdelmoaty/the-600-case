@@ -52,6 +52,21 @@ export function OfficialReportModal({ metric, onClose }: { metric: Metric; onClo
   );
 }
 
+export function DashChart({ metric, onZoom, selected, onSelect }: { metric: Metric; onZoom?: () => void; selected?: boolean; onSelect?: () => void }) {
+  const hA = Math.max(10, Math.round((metric.a / metric.max) * 100));
+  const hB = Math.max(10, Math.round((metric.b / metric.max) * 100));
+  const fmt = (v: number) => (metric.unit ? `${v}${metric.unit}` : `${v}`);
+  const body = <><header dir="ltr"><b>{metric.label}</b><span className={`g-source-tag tag-${metric.source.toLowerCase()}`}>{metric.source}</span></header>
+    <div className="g-dash-bars" dir="ltr">
+      <div><em>{fmt(metric.a)}</em><motion.i className="bar-a" initial={{ height: 0 }} animate={{ height: `${hA}%` }} transition={{ duration: .45 }} /><small>A</small></div>
+      <div><em>{fmt(metric.b)}</em><motion.i className="bar-b" initial={{ height: 0 }} animate={{ height: `${hB}%` }} transition={{ duration: .45, delay: .08 }} /><small>B</small></div>
+    </div></>;
+  return <div className={`g-dash-chart ${onSelect ? "is-pick" : ""} ${selected ? "is-selected" : ""}`}>
+    {onSelect ? <button className="g-dash-hit" aria-pressed={selected} onClick={onSelect}>{body}</button> : body}
+    {onZoom && <button className="g-dash-zoom" aria-label={`تكبير ${metric.label}`} onClick={onZoom}>⤢</button>}
+  </div>;
+}
+
 export function MiniEvidenceChip({ metric, selected, onClick }: { metric: Metric; selected?: boolean; onClick: () => void }) {
   const fmt = (v: number) => (metric.unit ? `${v}${metric.unit}` : `${v}`);
   return (
