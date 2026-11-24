@@ -113,7 +113,7 @@ describe("Training Evaluation engine", () => {
 describe("sayes payment", () => {
   it("records the parking payment once, only on the road", async () => {
     const { reduce, initialState } = await import("./engine");
-    let s = { ...initialState(), phase: "road" as const };
+    let s: ReturnType<typeof initialState> = { ...initialState(), phase: "road" };
     s = reduce(s, { type: "paySayes", pay: "ten" });
     expect(s.sayes).toBe("ten");
     expect(reduce(s, { type: "paySayes", pay: "fifty" }).sayes).toBe("ten");
