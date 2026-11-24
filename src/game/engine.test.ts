@@ -46,6 +46,14 @@ describe("Training Evaluation engine", () => {
   });
   it("guesses keep their loss outcome", () => {
     for (const id of ["trainer", "trainees"] as const) expect(run([...office, { type: "think", to: "guess" }, { type: "guess", id }, { type: "send" }]).outcome).toBe("lossGuess");
+    const trainerWithObs = run([...office, { type: "think", to: "guess" }, { type: "guess", id: "trainer", evidence: "complaints" }]);
+    expect(trainerWithObs.claim).toBe("trainer");
+    expect(trainerWithObs.evidence).toBe("complaints");
+    expect(run([...office, { type: "think", to: "guess" }, { type: "guess", id: "trainer", evidence: "complaints" }, { type: "send" }]).outcome).toBe("lossGuess");
+    const back = run([...office, { type: "think", to: "guess" }, { type: "guess", id: "trainer", evidence: "complaints" }, { type: "backFromEmail" }]);
+    expect(back.view).toBe("guess");
+    expect(back.claim).toBeNull();
+    expect(back.evidence).toBeNull();
   });
   it("prepares data for five seconds on all three entry paths without double penalty", () => {
     expect(DATA_PREPARATION_SECONDS).toBe(5);

@@ -189,7 +189,85 @@ function Think({ dispatch }: { dispatch: (a: Action) => void }) {
 }
 
 function Guess({ dispatch }: { dispatch: (a: Action) => void }) {
-  return <><header className="g-work-head"><h2>إيه تفسيرك الأول؟</h2></header><div className="g-choice-list">{GUESSES.map((g) => <button key={g.id} onClick={() => { sfx.pen(); dispatch({ type: "guess", id: g.id }); }}>{g.text}</button>)}</div><button className="g-btn secondary g-back-solid" onClick={() => dispatch({ type: "backToThink" })}>ارجع وفكر تاني</button></>;
+  const [obsOpen, setObsOpen] = useState(false);
+
+  const handleSelect = (id: "trainer" | "trainees" | "data") => {
+    if (id === "trainer") {
+      sfx.tap();
+      setObsOpen(true);
+    } else {
+      sfx.pen();
+      dispatch({ type: "guess", id });
+    }
+  };
+
+  return (
+    <>
+      <header className="g-work-head">
+        <h2>إيه تفسيرك الأول؟</h2>
+      </header>
+      <div className="g-choice-list">
+        {GUESSES.map((g) => (
+          <button key={g.id} onClick={() => handleSelect(g.id)}>
+            {g.text}
+          </button>
+        ))}
+      </div>
+      <button className="g-btn secondary g-back-solid" onClick={() => dispatch({ type: "backToThink" })}>
+        ارجع وفكر تاني
+      </button>
+
+      <Dialog.Root open={obsOpen} onOpenChange={setObsOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="g-preparation-backdrop" />
+          <Dialog.Content className="g-pair-confirmation g-obs-modal" aria-describedby={undefined}>
+            <Dialog.Title>ملاحظة بخصوص عدد الشكاوى</Dialog.Title>
+            <div className="g-obs-body">
+              <p className="g-obs-desc">
+                لوحظ أن <strong>المجموعة الأولى</strong> سُجّل فيها <strong>3 شكاوى</strong>، بينما <strong>المجموعة الثانية</strong> سُجّل فيها <strong>10 شكاوى</strong>.
+              </p>
+              <div className="g-obs-chips">
+                <div className="g-obs-chip chip-a">
+                  <span>المجموعة الأولى</span>
+                  <b>3 شكاوى</b>
+                </div>
+                <div className="g-obs-chip chip-b">
+                  <span>المجموعة الثانية</span>
+                  <b>10 شكاوى</b>
+                </div>
+              </div>
+              <p className="g-obs-prompt">هل تريد اعتماد هذه الملاحظة في التوصية؟</p>
+            </div>
+            <div className="g-confirm-actions">
+              <GameButton
+                className="primary"
+                onClick={() => {
+                  setObsOpen(false);
+                  sfx.pen();
+                  dispatch({ type: "guess", id: "trainer", evidence: "complaints" });
+                }}
+              >
+                اعتمد الملاحظة في التوصية
+              </GameButton>
+              <GameButton
+                className="secondary"
+                onClick={() => {
+                  setObsOpen(false);
+                  sfx.pen();
+                  dispatch({ type: "guess", id: "trainer", evidence: null });
+                }}
+              >
+                لا، إرسال التوصية بدونها
+              </GameButton>
+            </div>
+            <button type="button" className="g-obs-cancel-btn" onClick={() => setObsOpen(false)}>
+              تراجع عن الاختيار
+            </button>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </>
+  );
 }
 
 function DataPreparation({ dispatch }: { dispatch: (a: Action) => void }) {

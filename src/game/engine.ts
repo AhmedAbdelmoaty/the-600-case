@@ -62,7 +62,7 @@ export type Action =
   | { type: "next" }
   | { type: "enterOffice" }
   | { type: "think"; to: "guess" | "data" | "ask" }
-  | { type: "guess"; id: "trainer" | "trainees" | "data" }
+  | { type: "guess"; id: "trainer" | "trainees" | "data"; evidence?: EvidenceId | null }
   | { type: "ask"; id: QuestionId }
   | { type: "resetAsk" }
   | { type: "dataReady" }
@@ -106,7 +106,7 @@ export function reduce(s: State, a: Action): State {
     case "guess":
       if (!inOffice || s.view !== "guess") return s;
       if (a.id === "data") return toData(s);
-      return { ...s, claim: a.id, evidence: null, view: "email" };
+      return { ...s, claim: a.id, evidence: a.evidence ?? null, view: "email" };
     case "ask":
       if (!inOffice || s.view !== "ask") return s;
       if (a.id === "allData") return toData(s);
@@ -128,7 +128,7 @@ export function reduce(s: State, a: Action): State {
       return { ...s, view: "email" };
     case "backFromEmail":
       if (!inOffice || s.view !== "email") return s;
-      if (s.claim === "trainer" || s.claim === "trainees") return { ...s, view: "guess", claim: null };
+      if (s.claim === "trainer" || s.claim === "trainees") return { ...s, view: "guess", claim: null, evidence: null };
       return { ...s, view: s.path === "ask" ? "ask" : "data" };
     case "backToThink":
       return {
