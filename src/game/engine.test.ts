@@ -19,29 +19,30 @@ describe("Training Evaluation engine", () => {
     expect(supports("aBetter", "satisfaction")).toBe(false);
   });
   it("requires evidence before a conclusion", () => {
-    expect(run([...data, { type: "claim", id: "notRep" }]).claim).toBeNull();
-    const s = run([...data, { type: "evidence", id: "respondents" }, { type: "claim", id: "notRep" }]);
-    expect(s.evidence).toBe("respondents");
-    expect(s.claim).toBe("notRep");
+    expect(run([...data, { type: "claim", id: "equal" }]).claim).toBeNull();
+    const s = run([...data, { type: "evidence", id: "assignments" }, { type: "claim", id: "equal" }]);
+    expect(s.evidence).toBe("assignments");
+    expect(s.claim).toBe("equal");
+    expect(claimsFor(s)).not.toContain("notRep");
   });
   it("allows every pair to reach the email and only respondents plus notRep wins", () => {
     for (const evidence of EVIDENCE) for (const claim of DATA_CLAIMS) {
       const email = run([...data, { type: "evidence", id: evidence }, { type: "claim", id: claim }, { type: "confirm" }]);
       expect(email.view).toBe("email");
       expect(email.mismatch).toBe(false);
-      expect(reduce(email, { type: "send" }).outcome).toBe(claim === "notRep" && evidence === "respondents" ? "win" : "lossData");
+      expect(reduce(email, { type: "send" }).outcome).toBe("lossData");
     }
     expect(isCorrect("notRep", "attendance")).toBe(false);
   });
   it("review analysis returns one step back, keeping choices", () => {
-    const email = run([...data, { type: "evidence", id: "respondents" }, { type: "claim", id: "notRep" }, { type: "confirm" }]);
+    const email = run([...data, { type: "evidence", id: "assignments" }, { type: "claim", id: "equal" }, { type: "confirm" }]);
     const back = reduce(email, { type: "backFromEmail" });
     expect(back.view).toBe("data");
-    expect(back.claim).toBe("notRep");
+    expect(back.claim).toBe("equal");
   });
 
   it("clears the conclusion when replacing evidence", () => {
-    expect(run([...data, { type: "evidence", id: "respondents" }, { type: "claim", id: "notRep" }, { type: "evidence", id: "attendance" }]).claim).toBeNull();
+    expect(run([...data, { type: "evidence", id: "assignments" }, { type: "claim", id: "equal" }, { type: "evidence", id: "attendance" }]).claim).toBeNull();
   });
   it("guesses keep their loss outcome", () => {
     for (const id of ["trainer", "trainees"] as const) expect(run([...office, { type: "think", to: "guess" }, { type: "guess", id }, { type: "send" }]).outcome).toBe("lossGuess");

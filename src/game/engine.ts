@@ -11,7 +11,8 @@ export const DATA_PREPARATION_SECONDS = 5;
 export const BRIEF_LENGTH = 2;
 export const MEETING_LENGTH = 5;
 
-export const DATA_CLAIMS: ClaimId[] = ["aBetter", "bBetter", "equal", "notRep"];
+export const ALL_CLAIMS: ClaimId[] = ["aBetter", "bBetter", "equal", "notRep"];
+export const DATA_CLAIMS: ClaimId[] = ["aBetter", "bBetter", "equal"];
 export const ASK_CLAIMS: ClaimId[] = ["aBetter", "bBetter", "notRep"];
 export const EVIDENCE: EvidenceId[] = ["participants", "complaintsRate", "complaints", "satisfaction", "attendance", "assignments", "projects", "respondents"];
 
@@ -53,7 +54,7 @@ export function shuffle<T>(arr: T[], rng: () => number): T[] {
 const officeReset = { view: "think" as View, path: null, asked: [], claim: null, evidence: null, mismatch: false };
 
 export function initialState(): State {
-  return { phase: "intro", line: 0, officeEntered: false, penalty: 0, outcome: null, timedOut: false, order: DATA_CLAIMS, ...officeReset };
+  return { phase: "intro", line: 0, officeEntered: false, penalty: 0, outcome: null, timedOut: false, order: ALL_CLAIMS, ...officeReset };
 }
 
 export type Action =
@@ -77,7 +78,7 @@ export type Action =
 
 export const isCorrect = (claim: ClaimId | null, evidence: EvidenceId | null) => claim === "notRep" && evidence === "respondents";
 export const supports = (claim: ClaimId, ev: EvidenceId) => claim in SUPPORTS && SUPPORTS[claim as keyof typeof SUPPORTS].includes(ev);
-export const claimsFor = (s: State) => (s.path === "ask" ? s.order.filter((c) => ASK_CLAIMS.includes(c)) : s.order);
+export const claimsFor = (s: State) => (s.path === "ask" ? s.order.filter((c) => ASK_CLAIMS.includes(c)) : s.order.filter((c) => DATA_CLAIMS.includes(c)));
 export const timeLeft = (elapsed: number, penalty: number) => Math.max(0, DEADLINE_SECONDS - elapsed - penalty);
 
 function toData(s: State): State {
@@ -90,7 +91,7 @@ export function reduce(s: State, a: Action): State {
   const inOffice = s.phase === "office" && s.officeEntered;
   switch (a.type) {
     case "start":
-      return s.phase === "intro" ? { ...initialState(), phase: "brief", order: shuffle(DATA_CLAIMS, a.rng ?? Math.random) } : s;
+      return s.phase === "intro" ? { ...initialState(), phase: "brief", order: shuffle(ALL_CLAIMS, a.rng ?? Math.random) } : s;
     case "next":
       if (s.phase === "brief") return s.line + 1 < BRIEF_LENGTH ? { ...s, line: s.line + 1 } : { ...s, phase: "road", line: 0 };
       if (s.phase === "road") return { ...s, phase: "meeting", line: 0 };
