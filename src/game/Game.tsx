@@ -213,9 +213,24 @@ function DataPreparation({ dispatch }: { dispatch: (a: Action) => void }) {
 function DataView({ state, dispatch, openReport }: { state: State; dispatch: (a: Action) => void; openReport: (m: Metric) => void }) {
   const [picking, setPicking] = useState(Boolean(state.evidence));
   const restart = () => dispatch({ type: "backToThink" });
-  if (!picking) return <><section className="g-dash-board" dir="ltr"><header><b>Training Dashboard</b><span><i className="bar-a" />المجموعة الأولى <i className="bar-b" />المجموعة الثانية</span></header><div className="g-dash-grid">{METRICS_LIST.map((m) => <DashChart key={m.id} metric={m} />)}</div></section>
+
+  const sourceNote = (
+    <div className="g-dash-sources-note" dir="rtl">
+      <div className="g-note-item">
+        <span className="g-source-tag tag-lms">LMS</span>
+        <span>دي الداتا اللي جاية من السيستم</span>
+      </div>
+      <div className="g-note-item">
+        <span className="g-source-tag tag-survey">Survey</span>
+        <span>دي الداتا اللي جاية من الاستبيان في آخر محاضرة</span>
+      </div>
+    </div>
+  );
+
+  if (!picking) return <><section className="g-dash-board" dir="ltr"><header><b>Training Dashboard</b><span><i className="bar-a" />المجموعة الأولى <i className="bar-b" />المجموعة الثانية</span></header>{sourceNote}<div className="g-dash-grid">{METRICS_LIST.map((m) => <DashChart key={m.id} metric={m} />)}</div></section>
     <div className="g-row-actions"><GameButton className="primary" onClick={() => { sfx.tap(); setPicking(true); }}>اختار الدليل والاستنتاج</GameButton><GameButton className="secondary" onClick={restart}>ارجع للبداية</GameButton></div></>;
   return <><header className="g-work-head compact"><h2>استكشف البيانات المتاحة</h2></header>
+    {sourceNote}
     <div className="g-dash-grid g-pick-grid">{METRICS_LIST.map((m) => <DashChart key={m.id} metric={m} selected={state.evidence === m.id} onSelect={() => dispatch({ type: "evidence", id: m.id })} onZoom={() => openReport(m)} />)}</div>
     {state.evidence ? <ClaimPicker key={state.evidence} state={state} dispatch={dispatch} extra={<GameButton className="secondary" onClick={restart}>ارجع للبداية</GameButton>} /> : <div className="g-row-actions"><GameButton className="secondary" onClick={() => setPicking(false)}>رجوع للداشبورد</GameButton><GameButton className="secondary" onClick={restart}>ارجع للبداية</GameButton></div>}</>;
 }
