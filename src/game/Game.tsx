@@ -213,7 +213,7 @@ function DataPreparation({ dispatch }: { dispatch: (a: Action) => void }) {
 function DataView({ state, dispatch, openReport }: { state: State; dispatch: (a: Action) => void; openReport: (m: Metric) => void }) {
   const [picking, setPicking] = useState(Boolean(state.evidence));
   const restart = () => dispatch({ type: "backToThink" });
-  if (!picking) return <><section className="g-dash-board" dir="ltr"><header><b>Training Dashboard</b><span><i className="bar-a" />Group A <i className="bar-b" />Group B</span></header><div className="g-dash-grid">{METRICS_LIST.map((m) => <DashChart key={m.id} metric={m} />)}</div></section>
+  if (!picking) return <><section className="g-dash-board" dir="ltr"><header><b>Training Dashboard</b><span><i className="bar-a" />المجموعة الأولى <i className="bar-b" />المجموعة الثانية</span></header><div className="g-dash-grid">{METRICS_LIST.map((m) => <DashChart key={m.id} metric={m} />)}</div></section>
     <div className="g-row-actions"><GameButton className="primary" onClick={() => { sfx.tap(); setPicking(true); }}>اختار الدليل والاستنتاج</GameButton><GameButton className="secondary" onClick={restart}>ارجع للبداية</GameButton></div></>;
   return <><header className="g-work-head compact"><h2>اختار الدليل اللي هتعتمد عليه أولاً</h2></header>
     <div className="g-dash-grid g-pick-grid">{METRICS_LIST.map((m) => <DashChart key={m.id} metric={m} selected={state.evidence === m.id} onSelect={() => dispatch({ type: "evidence", id: m.id })} onZoom={() => openReport(m)} />)}</div>

@@ -16,8 +16,8 @@ export function InlineReportCard({ metric }: { metric: Metric }) {
       <div className="g-inline-chart" dir="ltr">
         <div className="g-report-grid-lines"><span /><span /><span /></div>
         <div className="g-report-columns">
-          <div className="g-report-col col-a"><span className="g-report-val">{fmt(metric.a)}</span><motion.div className="g-report-bar bar-a" initial={{ height: 0 }} animate={{ height: `${hA}%` }} transition={{ duration: .45, ease: "easeOut" }} /><span className="g-report-col-label">Group A</span></div>
-          <div className="g-report-col col-b"><span className="g-report-val">{fmt(metric.b)}</span><motion.div className="g-report-bar bar-b" initial={{ height: 0 }} animate={{ height: `${hB}%` }} transition={{ duration: .45, delay: .1, ease: "easeOut" }} /><span className="g-report-col-label">Group B</span></div>
+          <div className="g-report-col col-a"><span className="g-report-val">{fmt(metric.a)}</span><motion.div className="g-report-bar bar-a" initial={{ height: 0 }} animate={{ height: `${hA}%` }} transition={{ duration: .45, ease: "easeOut" }} /><span className="g-report-col-label">المجموعة الأولى</span></div>
+          <div className="g-report-col col-b"><span className="g-report-val">{fmt(metric.b)}</span><motion.div className="g-report-bar bar-b" initial={{ height: 0 }} animate={{ height: `${hB}%` }} transition={{ duration: .45, delay: .1, ease: "easeOut" }} /><span className="g-report-col-label">المجموعة الثانية</span></div>
         </div>
       </div>
       <footer className="g-inline-foot"><div className="g-report-stamp mini"><CheckCircle size={13} /><span>معتمد</span></div><p className="g-inline-note">{metric.note}</p></footer>
@@ -37,13 +37,13 @@ export function OfficialReportModal({ metric, onClose }: { metric: Metric; onClo
           <span className="g-report-badge"><FileText size={14} /> تقرير رسمي معتمد</span>
           <h3>{metric.labelAr}</h3>
           <p className="g-report-origin">صادر عن: <b>إدارة الموارد البشرية والتدريب</b> · المصدر: <b>{metric.source}</b></p>
-          <small className="g-report-sub">{metric.label} — مقارنة مجموعة A مع مجموعة B</small>
+          <small className="g-report-sub">{metric.label} — مقارنة المجموعة الأولى مع المجموعة الثانية</small>
         </header>
         <div className="g-report-chart-area" dir="ltr">
           <div className="g-report-grid-lines"><span /><span /><span /><span /></div>
           <div className="g-report-columns">
-            <div className="g-report-col col-a"><span className="g-report-val">{fmt(metric.a)}</span><motion.div className="g-report-bar bar-a" initial={{ height: 0 }} animate={{ height: `${hA}%` }} transition={{ duration: .5, ease: "easeOut" }} /><span className="g-report-col-label">Group A</span></div>
-            <div className="g-report-col col-b"><span className="g-report-val">{fmt(metric.b)}</span><motion.div className="g-report-bar bar-b" initial={{ height: 0 }} animate={{ height: `${hB}%` }} transition={{ duration: .5, delay: .1, ease: "easeOut" }} /><span className="g-report-col-label">Group B</span></div>
+            <div className="g-report-col col-a"><span className="g-report-val">{fmt(metric.a)}</span><motion.div className="g-report-bar bar-a" initial={{ height: 0 }} animate={{ height: `${hA}%` }} transition={{ duration: .5, ease: "easeOut" }} /><span className="g-report-col-label">المجموعة الأولى</span></div>
+            <div className="g-report-col col-b"><span className="g-report-val">{fmt(metric.b)}</span><motion.div className="g-report-bar bar-b" initial={{ height: 0 }} animate={{ height: `${hB}%` }} transition={{ duration: .5, delay: .1, ease: "easeOut" }} /><span className="g-report-col-label">المجموعة الثانية</span></div>
           </div>
         </div>
         <footer className="g-report-footer"><div className="g-report-stamp"><CheckCircle size={15} /><span>معتمد</span></div><p className="g-report-note">{metric.note}</p></footer>
@@ -58,8 +58,8 @@ export function DashChart({ metric, onZoom, selected, onSelect }: { metric: Metr
   const fmt = (v: number) => (metric.unit ? `${v}${metric.unit}` : `${v}`);
   const body = <><header dir="ltr"><b>{metric.label}</b><span className={`g-source-tag tag-${metric.source.toLowerCase()}`}>{metric.source}</span></header>
     <div className="g-dash-bars" dir="ltr">
-      <div><em>{fmt(metric.a)}</em><motion.i className="bar-a" initial={{ height: 0 }} animate={{ height: `${hA}%` }} transition={{ duration: .45 }} /><small>A</small></div>
-      <div><em>{fmt(metric.b)}</em><motion.i className="bar-b" initial={{ height: 0 }} animate={{ height: `${hB}%` }} transition={{ duration: .45, delay: .08 }} /><small>B</small></div>
+      <div><em>{fmt(metric.a)}</em><motion.i className="bar-a" initial={{ height: 0 }} animate={{ height: `${hA}%` }} transition={{ duration: .45 }} /><small>الأولى</small></div>
+      <div><em>{fmt(metric.b)}</em><motion.i className="bar-b" initial={{ height: 0 }} animate={{ height: `${hB}%` }} transition={{ duration: .45, delay: .08 }} /><small>الثانية</small></div>
     </div></>;
   return <div className={`g-dash-chart ${onSelect ? "is-pick" : ""} ${selected ? "is-selected" : ""}`}>
     {onSelect ? <button className="g-dash-hit" aria-pressed={selected} onClick={onSelect}>{body}</button> : body}
@@ -72,7 +72,7 @@ export function MiniEvidenceChip({ metric, selected, onClick }: { metric: Metric
   return (
     <button className={`g-mini-chip ${selected ? "is-selected" : ""}`} onClick={onClick} dir="rtl">
       <div className="g-mini-top"><span className={`g-source-tag tag-${metric.source.toLowerCase()}`}>{metric.source}</span><b dir="ltr" className="g-chip-title-en">{metric.label}</b><small className="g-chip-title-ar">{metric.labelAr}</small></div>
-      <div className="g-mini-nums" dir="ltr"><span className="val-a">A: {fmt(metric.a)}</span><span className="val-sep">|</span><span className="val-b">B: {fmt(metric.b)}</span></div>
+      <div className="g-mini-nums" dir="rtl"><span className="val-a">الأولى: {fmt(metric.a)}</span><span className="val-sep">|</span><span className="val-b">الثانية: {fmt(metric.b)}</span></div>
     </button>
   );
 }
