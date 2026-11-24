@@ -53,7 +53,7 @@ export const METRICS_LIST: Metric[] = [
   { id: "participants", label: "Course Participants", labelAr: "إجمالي المشاركين في الكورس", source: "LMS", a: 50, b: 50, max: 60, note: "عدد المسجلين رسمياً في السيستم لكل مجموعة." },
   { id: "complaintsRate", label: "Complaints Rate", labelAr: "نسبة الشكاوى من المستجيبين", source: "Survey", a: 10, b: 22, unit: "%", max: 30, note: "نسبة من أبدوا ملاحظات سلبية من بين من ملأوا الاستبيان." },
   { id: "complaints", label: "Complaints Count", labelAr: "عدد الشكاوى المسجلة", source: "Survey", a: 3, b: 10, max: 12, note: "إجمالي الشكاوى الفردية المرصودة في نماذج الاستبيان (35 راضياً مقابل 10 شكاوى في المجموعة الثانية)." },
-  { id: "satisfaction", label: "Satisfaction Score", labelAr: "درجة الرضا العامة", source: "Survey", a: 90, b: 78, unit: "%", max: 100, note: "متوسط تقييم جودة التدريب في الاستبيان الورقي." },
+  { id: "satisfaction", label: "Satisfaction Rate", labelAr: "نسبة الرضا العامة", source: "Survey", a: 90, b: 78, unit: "%", max: 100, note: "متوسط تقييم جودة التدريب في الاستبيان الورقي." },
   { id: "attendance", label: "Attendance Rate", labelAr: "نسبة الحضور الفعلي", source: "LMS", a: 75, b: 95, unit: "%", max: 100, note: "سجلات الحضور عبر البصمة الإلكترونية للقاعات." },
   { id: "assignments", label: "Assignment Submission", labelAr: "تسليم الواجبات الدورية", source: "LMS", a: 35, b: 35, max: 50, note: "عدد المتدربين المسلمين للواجبات عبر منصة LMS." },
   { id: "projects", label: "Project Submission", labelAr: "تسليم المشاريع العملية", source: "LMS", a: 30, b: 35, max: 50, note: "المشاريع النهائية المعتمدة من مقيّم الدورة." },
