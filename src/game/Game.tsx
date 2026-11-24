@@ -252,6 +252,52 @@ function Guess({ dispatch }: { dispatch: (a: Action) => void }) {
     dispatch({ type: "guess", id: claimId, evidence: null });
   };
 
+  if (activeConfig && step === "search") {
+    return (
+      <div className="g-floating-stack" dir="rtl">
+        <button
+          className="g-floating-btn btn-red"
+          onClick={() => {
+            sfx.tap();
+            setStep("chart");
+          }}
+        >
+          ابحث عن دليل
+        </button>
+        <button
+          className="g-floating-btn btn-white"
+          onClick={handleSkipEvidence}
+        >
+          المتابعة للتوصية بدون دليل
+        </button>
+      </div>
+    );
+  }
+
+  if (activeConfig && step === "chart") {
+    return (
+      <div className="g-floating-chart-view" dir="rtl">
+        <InlineReportCard metric={activeConfig.metric} stamped={stamped} />
+        <div className="g-floating-chart-actions">
+          <button
+            className="g-floating-btn btn-red"
+            disabled={stamped}
+            onClick={handleAdopt}
+          >
+            {stamped ? "تم الاعتماد ✓" : activeConfig.adoptBtnText}
+          </button>
+          <button
+            className="g-floating-btn btn-white"
+            disabled={stamped}
+            onClick={handleSkipEvidence}
+          >
+            لا، إرسال التوصية بدونها
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <header className="g-work-head">
@@ -267,81 +313,6 @@ function Guess({ dispatch }: { dispatch: (a: Action) => void }) {
       <button className="g-btn secondary g-back-solid" onClick={() => dispatch({ type: "backToThink" })}>
         ارجع وفكر تاني
       </button>
-
-      <Dialog.Root open={Boolean(activeConfig)} onOpenChange={(open) => { if (!open && !stamped) setActiveConfig(null); }}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="g-preparation-backdrop" />
-          <Dialog.Content className="g-pair-confirmation g-obs-modal" aria-describedby={undefined}>
-            {activeConfig && step === "search" && (
-              <>
-                <Dialog.Title>البحث عن دليل</Dialog.Title>
-                <div className="g-obs-body">
-                  <p className="g-obs-desc">
-                    اخترت: <strong>{activeConfig.claimText}</strong>
-                    <br />
-                    هل ترغب في البحث عن دليل يدعم هذا التفسير قبل إرسال التوصية؟
-                  </p>
-                </div>
-                <div className="g-confirm-actions">
-                  <GameButton
-                    className="primary"
-                    onClick={() => {
-                      sfx.tap();
-                      setStep("chart");
-                    }}
-                  >
-                    ابحث عن دليل
-                  </GameButton>
-                  <GameButton
-                    className="secondary"
-                    onClick={handleSkipEvidence}
-                  >
-                    المتابعة للتوصية بدون دليل
-                  </GameButton>
-                </div>
-                <button type="button" className="g-obs-cancel-btn" onClick={() => setActiveConfig(null)}>
-                  تراجع عن الاختيار
-                </button>
-              </>
-            )}
-
-            {activeConfig && step === "chart" && (
-              <>
-                <Dialog.Title>{activeConfig.chartTitle}</Dialog.Title>
-                <div className="g-obs-report-wrap">
-                  <InlineReportCard metric={activeConfig.metric} stamped={stamped} />
-                </div>
-                <p className="g-obs-prompt">
-                  {activeConfig.claimId === "trainer"
-                    ? "هل تريد اعتماد هذه الملاحظة في التوصية؟"
-                    : "هل تريد اعتماد هذا الدليل في التوصية؟"}
-                </p>
-                <div className="g-confirm-actions">
-                  <GameButton
-                    className="primary"
-                    disabled={stamped}
-                    onClick={handleAdopt}
-                  >
-                    {stamped ? "تم الاعتماد ✓" : activeConfig.adoptBtnText}
-                  </GameButton>
-                  <GameButton
-                    className="secondary"
-                    disabled={stamped}
-                    onClick={handleSkipEvidence}
-                  >
-                    لا، إرسال التوصية بدونها
-                  </GameButton>
-                </div>
-                {!stamped && (
-                  <button type="button" className="g-obs-cancel-btn" onClick={() => setStep("search")}>
-                    الرجوع للخطوة السابقة
-                  </button>
-                )}
-              </>
-            )}
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
     </>
   );
 }
