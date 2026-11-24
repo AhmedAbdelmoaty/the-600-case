@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ChevronDown, ChevronLeft, DoorOpen, Home, Mail, RotateCcw, Send, Smartphone, Volume2, VolumeX } from "lucide-react";
 import { DATA_PREPARATION_SECONDS, DEADLINE_SECONDS, claimsFor, initialState, reduce, timeLeft, type Action, type State } from "./engine";
-import { BRIEF, CLAIM_LABELS, CONFIRM_PAIR, emailBody, GUESSES, LOSS_GUESS, LOSS_SUPERFICIAL, MEETING, METRICS, METRICS_LIST, QUESTIONS, SEIF_MESSAGES, SUBTITLE_AR, TAKEAWAYS, THOUGHTS, TIMEOUT, TITLE, WIN, type Ending, type Line, type Metric, type Speaker } from "./content";
+import { BRIEF, CLAIM_LABELS, CONFIRM_PAIR, emailBody, GUESSES, LOSS_GUESS, LOSS_SUPERFICIAL, MEETING, METRICS, METRICS_LIST, QUESTIONS, SEIF_MESSAGES, TAKEAWAYS, THOUGHTS, TIMEOUT, TITLE, WIN, type Ending, type Line, type Metric, type Speaker } from "./content";
 import { PORTRAITS, SCENES, type SceneKey } from "./assets";
 import { DashChart, InlineReportCard, OfficialReportModal } from "./Chart";
 import { setMuted, sfx, startBgm, tick, whoosh } from "./audio";
@@ -99,7 +99,57 @@ function Hud({ state, muted, remaining, timerOn, onMute, onRestart, onThink }: {
 }
 
 function Cover({ go }: { go: () => void }) {
-  return <section className="g-cover"><motion.h1 dir="ltr" initial={{ y: 22, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>{TITLE}</motion.h1><motion.h2 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .2 }}>{SUBTITLE_AR}</motion.h2><motion.button className="g-btn primary big" onClick={go} initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: .4 }}>ابدأ الآن</motion.button><small className="g-role">دورك: محلل الموارد البشرية</small></section>;
+  return (
+    <section className="g-cover">
+      <motion.h1
+        dir="ltr"
+        initial={{ y: 24, opacity: 0, scale: 0.95 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {TITLE}
+      </motion.h1>
+      <div className="g-cover-subtitles" dir="ltr">
+        <motion.h2
+          className="g-cover-ready"
+          initial={{ y: 18, opacity: 0 }}
+          animate={{ y: [0, -3.5, 0], opacity: 1 }}
+          transition={{
+            opacity: { duration: 0.5, delay: 0.2 },
+            y: { delay: 0.2, duration: 3.2, repeat: Infinity, ease: "easeInOut" },
+          }}
+        >
+          Are you ready!
+        </motion.h2>
+        <motion.p
+          className="g-cover-analyst"
+          initial={{ y: 16, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.35, duration: 0.5, ease: "easeOut" }}
+        >
+          You are The Analyst
+        </motion.p>
+      </div>
+      <motion.button
+        className="g-btn primary big g-cover-start-btn"
+        onClick={go}
+        dir="ltr"
+        initial={{ y: 20, opacity: 0, scale: 0.96 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        whileHover={{ scale: 1.06, y: -2 }}
+        whileTap={{ scale: 0.96 }}
+        transition={{
+          delay: 0.45,
+          duration: 0.4,
+          type: "spring",
+          stiffness: 420,
+          damping: 24,
+        }}
+      >
+        Start now
+      </motion.button>
+    </section>
+  );
 }
 
 function Road({ next }: { next: () => void }) {

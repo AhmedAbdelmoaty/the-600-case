@@ -15,7 +15,9 @@ describe("Training Evaluation content", () => {
     expect([METRICS.participants.a, METRICS.participants.b]).toEqual([50, 50]);
     expect([METRICS.respondents.a, METRICS.respondents.b]).toEqual([30, 45]);
     expect([METRICS.attendance.a, METRICS.attendance.b]).toEqual([75, 95]);
-    expect([METRICS.satisfaction.a, METRICS.satisfaction.b]).toEqual([90, 80]);
+    expect([METRICS.satisfaction.a, METRICS.satisfaction.b]).toEqual([90, 78]);
+    expect([METRICS.complaints.a, METRICS.complaints.b]).toEqual([3, 10]);
+    expect([METRICS.complaintsRate.a, METRICS.complaintsRate.b]).toEqual([10, 22]);
   });
   it("marks unavailable question and has two Seif nudges", () => {
     expect(QUESTIONS.find((q) => q.id === "complaintsOfAll")?.na).toBe(true);
