@@ -1,5 +1,5 @@
 export type Phase = "intro" | "brief" | "road" | "meeting" | "office" | "verdict";
-export type View = "think" | "guess" | "data" | "ask" | "email";
+export type View = "think" | "guess" | "preparingData" | "data" | "ask" | "email";
 export type Path = "data" | "ask";
 export type ClaimId = "aBetter" | "bBetter" | "equal" | "notRep" | "trainer" | "trainees";
 export type EvidenceId = "participants" | "complaintsRate" | "complaints" | "satisfaction" | "attendance" | "assignments" | "projects" | "respondents";
@@ -7,10 +7,9 @@ export type QuestionId = "respondents" | "complaintsOfAll" | "attendance" | "com
 export type Outcome = "win" | "lossGuess" | "lossData";
 
 export const DEADLINE_SECONDS = 120;
-export const GUESS_PENALTY = 10;
-export const DATA_PENALTY = 5;
-export const BRIEF_LENGTH = 1;
-export const MEETING_LENGTH = 4;
+export const DATA_PREPARATION_SECONDS = 5;
+export const BRIEF_LENGTH = 2;
+export const MEETING_LENGTH = 5;
 
 export const DATA_CLAIMS: ClaimId[] = ["aBetter", "bBetter", "equal", "notRep"];
 export const ASK_CLAIMS: ClaimId[] = ["aBetter", "bBetter", "notRep"];
@@ -43,7 +42,10 @@ export function shuffle<T>(arr: T[], rng: () => number): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j]!, a[i]!];
+    const current = a[i];
+    const other = a[j];
+    if (current === undefined || other === undefined) continue;
+    [a[i], a[j]] = [other, current];
   }
   return a;
 }
@@ -62,6 +64,7 @@ export type Action =
   | { type: "guess"; id: "trainer" | "trainees" | "data" }
   | { type: "ask"; id: QuestionId }
   | { type: "resetAsk" }
+  | { type: "dataReady" }
   | { type: "claim"; id: ClaimId }
   | { type: "evidence"; id: EvidenceId }
   | { type: "confirm" }
@@ -76,9 +79,11 @@ export const supports = (claim: ClaimId, ev: EvidenceId) => claim in SUPPORTS &&
 export const claimsFor = (s: State) => (s.path === "ask" ? s.order.filter((c) => ASK_CLAIMS.includes(c)) : s.order);
 export const timeLeft = (elapsed: number, penalty: number) => Math.max(0, DEADLINE_SECONDS - elapsed - penalty);
 
-function toData(s: State, cost: number): State {
-  return { ...s, view: "data", path: "data", penalty: s.penalty + cost, claim: null, evidence: null, mismatch: false };
+function toData(s: State): State {
+  return { ...s, view: "preparingData", path: "data", claim: null, evidence: null, mismatch: false };
 }
+
+const questionEvidence: Partial<Record<QuestionId, EvidenceId>> = { respondents: "respondents", attendance: "attendance", complaintsCount: "complaints" };
 
 export function reduce(s: State, a: Action): State {
   const inOffice = s.phase === "office" && s.officeEntered;
@@ -86,7 +91,7 @@ export function reduce(s: State, a: Action): State {
     case "start":
       return s.phase === "intro" ? { ...initialState(), phase: "brief", order: shuffle(DATA_CLAIMS, a.rng ?? Math.random) } : s;
     case "next":
-      if (s.phase === "brief") return { ...s, phase: "road", line: 0 };
+      if (s.phase === "brief") return s.line + 1 < BRIEF_LENGTH ? { ...s, line: s.line + 1 } : { ...s, phase: "road", line: 0 };
       if (s.phase === "road") return { ...s, phase: "meeting", line: 0 };
       if (s.phase === "meeting") return s.line + 1 < MEETING_LENGTH ? { ...s, line: s.line + 1 } : { ...s, phase: "office", line: 0 };
       return s;
@@ -94,28 +99,30 @@ export function reduce(s: State, a: Action): State {
       return s.phase === "office" ? { ...s, officeEntered: true } : s;
     case "think":
       if (!inOffice || s.view !== "think") return s;
-      if (a.to === "data") return toData(s, DATA_PENALTY);
+      if (a.to === "data") return toData(s);
       return { ...s, view: a.to, path: a.to === "ask" ? "ask" : null };
     case "guess":
       if (!inOffice || s.view !== "guess") return s;
-      if (a.id === "data") return toData(s, GUESS_PENALTY);
+      if (a.id === "data") return toData(s);
       return { ...s, claim: a.id, evidence: null, view: "email" };
     case "ask":
       if (!inOffice || s.view !== "ask") return s;
-      if (a.id === "allData") return toData(s, DATA_PENALTY);
-      return s.asked.length ? s : { ...s, asked: [a.id] };
+      if (a.id === "allData") return toData(s);
+      return s.asked.length ? s : { ...s, asked: [a.id], evidence: questionEvidence[a.id] ?? null, claim: null };
+    case "dataReady":
+      return inOffice && s.view === "preparingData" ? { ...s, view: "data" } : s;
     case "resetAsk":
       if (!inOffice || s.view !== "ask") return s;
       return { ...s, asked: [], claim: null, evidence: null, mismatch: false };
     case "claim":
-      if (!inOffice || (s.view !== "data" && s.view !== "ask") || !claimsFor(s).includes(a.id)) return s;
-      if (s.path === "ask" && s.evidence) return { ...s, claim: a.id, mismatch: !supports(a.id, s.evidence) };
-      return { ...s, claim: a.id, evidence: null, mismatch: false };
+      if (!inOffice || !s.evidence || (s.view !== "data" && s.view !== "ask") || !claimsFor(s).includes(a.id)) return s;
+      return { ...s, claim: a.id, mismatch: false };
     case "evidence":
-      if (!inOffice || !s.claim || (s.view !== "data" && s.view !== "ask")) return s;
-      return { ...s, evidence: a.id, mismatch: !supports(s.claim, a.id) };
+      if (!inOffice || (s.view !== "data" && s.view !== "ask") || !EVIDENCE.includes(a.id)) return s;
+      if (s.path === "ask" && questionEvidence[s.asked[0] ?? "complaintsOfAll"] !== a.id) return s;
+      return { ...s, evidence: a.id, claim: null, mismatch: false };
     case "confirm":
-      if (!inOffice || !s.claim || !s.evidence || s.mismatch) return s;
+      if (!inOffice || !s.claim || !s.evidence) return s;
       return { ...s, view: "email" };
     case "backToThink":
       return {
